@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "name": "Labyrinth",
+  "url": "",
+  "logo": "assets/favicon.png",
+  "intro": "Labyrinth hackathon Organised by GDG NIT Hamirpur.",
+  "author": "Prashant",
+  "lang": ["en"],
+  "homecraft": true
+}
