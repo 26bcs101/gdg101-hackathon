@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#7fb2e8">
+<!-- The world draws its own day and night. -->
+<meta name="color-scheme" content="only light">
+<meta name="darkreader-lock">
+<title>Labyrinth Hackathon — Organised by GDG NIT Hamirpur</title>
+<meta name="description" content="Labyrinth hackathon Organised by GDG NIT Hamirpur. 36-hour in-person hackathon.">
+<meta name="author" content="Prashant">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Labyrinth Hackathon">
+<meta property="og:description" content="Labyrinth hackathon Organised by GDG NIT Hamirpur.">
+<meta property="og:image" content="assets/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="assets/favicon.png">
+<link rel="stylesheet" href="engine/style.css">
+<style>
+/* Minecraft GUI Panel Card Background */
+dialog#panel {
+  width: min(780px, calc(100vw - 40px));
+}
+dialog#panel::backdrop {
+  background: rgba(0, 0, 0, 0.55) !important;
+  backdrop-filter: blur(2px);
+}
+#panel .body.page.custom {
+  background: var(--gui, #c4c2bc);
+  border: 8px solid transparent;
+  border-image: var(--mc-frame) 4 fill / 8px;
+  padding: 24px 28px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: #89877f transparent;
+  scrollbar-width: thin;
+  max-height: min(580px, calc(100dvh - 160px));
+  box-shadow: 0 0 0 2px var(--line, #111), 0 12px 36px rgba(0, 0, 0, 0.45);
+  color: var(--ink);
+}
+@media (max-width: 720px), (max-height: 520px) {
+  #panel .body.page {
+    padding: 16px 14px;
+    max-height: calc(100dvh - 120px);
+  }
+}
+
+/* Card inner components */
+.hack-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 14px 0; }
+.hack-stat {
+  padding: 12px;
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  border: 2px solid color-mix(in srgb, var(--ink) 14%, transparent);
+  border-radius: 4px;
+  text-align: center;
+}
+.hack-stat .val { display: block; font: 700 22px/1.2 var(--text); color: #2e7d32; text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.4); }
+body.night .hack-stat .val { color: #4cd137; text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5); }
+.hack-stat .lbl { font: 500 12px/1.2 var(--text); color: var(--ink-soft); }
+
+.track-card {
+  margin-bottom: 14px;
+  padding: 14px;
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  border: 2px solid color-mix(in srgb, var(--ink) 12%, transparent);
+  border-radius: 4px;
+}
+.track-tag { display: inline-block; padding: 2px 8px; font-size: 11px; font-weight: 700; background: #2f5b46; color: #fff; border-radius: 4px; margin-bottom: 6px; }
+
+.schedule-item {
+  display: grid;
+  grid-template-columns: 85px 1fr;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
+}
+.schedule-time { font-weight: 700; font-size: 14px; color: #2e7d32; }
+body.night .schedule-time { color: #4cd137; }
+
+.prize-tier {
+  margin: 10px 0;
+  padding: 12px 14px;
+  border-left: 5px solid #f1c40f;
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+  border-radius: 0 4px 4px 0;
+}
+.prize-tier.gold { border-left-color: #f1c40f; }
+.prize-tier.silver { border-left-color: #95a5a6; }
+.prize-tier.bronze { border-left-color: #e67e22; }
+.prize-amount {
+  float: right;
+  font-weight: 700;
+  font-size: 19px;
+  color: #2e7d32;
+  text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.4);
+}
+body.night .prize-amount { color: #4cd137; text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5); }
+
+.faq-box {
+  margin-bottom: 12px;
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ink) 10%, transparent);
+  border-radius: 4px;
+  padding: 4px 12px;
+}
+.faq-box summary { font-weight: 600; cursor: pointer; padding: 8px 0; }
+.faq-box p { margin: 4px 0 10px; color: var(--ink); }
+
+/* Hide external portals, language switch, BetterMapIt, and Homecraft map badges */
+#portalButton, #portalReturn, .hc-controls, .hc-control, .lang-switch, button.lang-switch, #panel .lang-switch { display: none !important; }
+#minimap .badge, #minimap .badge.credit, #minimap .badge.made, .badge.credit, .badge.made, a.badge {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+</style>
+<script type="importmap">{"imports":{
+  "three":"./vendor/three/three.module.min.js",
+  "@engine/":"./engine/",
+  "@world/":"./world/",
+  "@config":"./home.config.js"
+}}</script>
+</head>
+<body>
+<main id="world" aria-label="Labyrinth"></main>
+<div id="loading"><div class="bar"><i></i></div></div>
+
+<section id="pages">
+  <h1 class="plain-title">Labyrinth</h1>
+
+  <!-- 1. Welcome Station -->
+  <article class="page" id="welcome" data-station="welcome" data-icon="scroll">
+    <h2>Welcome to Labyrinth</h2>
+    <p><strong>Labyrinth hackathon Organised by GDG NIT Hamirpur.</strong></p>
+    <p>Join 300+ builders, creators, and hackers for 36 hours of high-energy creation and innovation. Lead Organizer: Prashant.</p>
+
+    <div class="hack-grid">
+      <div class="hack-stat"><span class="val">₹1,50,000</span><span class="lbl">Prize Pool</span></div>
+      <div class="hack-stat"><span class="val">300+</span><span class="lbl">Hackers</span></div>
+      <div class="hack-stat"><span class="val">4</span><span class="lbl">Tracks</span></div>
+      <div class="hack-stat"><span class="val">36h</span><span class="lbl">Duration</span></div>
+    </div>
+
+    <p class="aside">📅 <strong>Dec 19, 09:00 — Dec 20, 18:00 IST</strong><br>📍 <strong>Tech Innovation Hub</strong>, 42 Cyber Road, Outer Ring, Bengaluru</p>
+
+    <div class="page-foot" style="margin-top:16px; display:flex; gap:10px;">
+      <a class="mc-button" href="#register" data-open="register">Register Now</a>
+      <a class="mc-button" href="#tracks" data-open="tracks">Explore Tracks</a>
+    </div>
+  </article>
+
+  <!-- 2. Tracks Station -->
+  <article class="page" id="tracks" data-station="tracks" data-icon="works">
+    <h2>Challenge Tracks</h2>
+    <p>Choose one of the 4 challenge tracks to forge your project during the hackathon:</p>
+
+    <div class="track-card">
+      <span class="track-tag" style="background:#0984e3;">Gemini Developer Ecosystem</span>
+      <h3>1. Autonomous AI & Agents</h3>
+      <p>Build agentic workflows, multi-agent swarms, self-healing systems, coding assistants, and autonomous reasoning systems.</p>
+    </div>
+
+    <div class="track-card">
+      <span class="track-tag" style="background:#8e44ad;">Polygon Labs</span>
+      <h3>2. Decentralized Systems</h3>
+      <p>Pioneer cryptographic applications, verifiable computation, decentralized attestations, zero-knowledge proofs, and peer-to-peer data meshes.</p>
+    </div>
+
+    <div class="track-card">
+      <span class="track-tag" style="background:#d35400;">Spatial Computing</span>
+      <h3>3. Interactive 3D & Spatial Web</h3>
+      <p>Create next-generation WebGL/WebGPU browser worlds, procedural 3D environments, physics simulations, and collaborative spatial UI tools.</p>
+    </div>
+
+    <div class="track-card">
+      <span class="track-tag" style="background:#27ae60;">Community</span>
+      <h3>4. Open Innovation</h3>
+      <p>High-impact software tackling sustainability, education, healthcare accessibility, civic tech, or developer productivity tools.</p>
+    </div>
+  </article>
+
+  <!-- 3. Schedule Station -->
+  <article class="page" id="schedule" data-station="schedule" data-icon="camera">
+    <h2>36-Hour Timeline</h2>
+    <p>All times in Indian Standard Time (IST):</p>
+
+    <div class="schedule-item">
+      <div class="schedule-time">Dec 19<br>09:00</div>
+      <div><strong>Check-in & Welcome Breakfast</strong><br><span class="aside">Main Atrium — Badge collection, coffee & light bites</span></div>
+    </div>
+    <div class="schedule-item">
+      <div class="schedule-time">10:30</div>
+      <div><strong>Opening Ceremony & Keynote</strong><br><span class="aside">Main Stage — Rules briefing, track reveals, and sponsor spotlights</span></div>
+    </div>
+    <div class="schedule-item">
+      <div class="schedule-time">11:30</div>
+      <div><strong>Hacking Commences & Team Matching</strong><br><span class="aside">Hacker Arenas A & B — Coding kicks off!</span></div>
+    </div>
+    <div class="schedule-item">
+      <div class="schedule-time">13:00</div>
+      <div><strong>Lunch Break</strong><br><span class="aside">Dining Hall — Hot meals and networking</span></div>
+    </div>
+    <div class="schedule-item">
+      <div class="schedule-time">15:00</div>
+      <div><strong>Workshop: Modern WebGL & 3D Web</strong><br><span class="aside">Workshop Hall — Hands-on session with lead mentors</span></div>
+    </div>
+    <div class="schedule-item">
+      <div class="schedule-time">Dec 20<br>00:00</div>
+      <div><strong>Midnight Energy Boost & Mini Games</strong><br><span class="aside">Recreation Lounge — Snacks, trivia, and rapid prizes</span></div>
+    </div>
+    <div class="schedule-item">
+      <div class="schedule-time">14:00</div>
+      <div><strong>Hacking Deadline & Submissions</strong><br><span class="aside">Portal Submissions close sharp at 14:00</span></div>
+    </div>
+    <div class="schedule-item">
+      <div class="schedule-time">15:00</div>
+      <div><strong>Project Demos & Judging Expo</strong><br><span class="aside">Showcase Floor — Live demos before judging panel</span></div>
+    </div>
+    <div class="schedule-item">
+      <div class="schedule-time">17:00</div>
+      <div><strong>Closing Ceremony & Awards</strong><br><span class="aside">Main Stage — Trophy presentations & wrap-up</span></div>
+    </div>
+  </article>
+
+  <!-- 4. Prizes Station -->
+  <article class="page" id="prizes" data-station="prizes" data-icon="honors">
+    <h2>Prizes & Swag</h2>
+    <p>A total prize pool of <strong>₹1,50,000</strong> plus sponsor bounty perks and developer swag:</p>
+
+    <div class="prize-tier gold">
+      <span class="prize-amount">₹75,000</span>
+      <h3>🥇 First Place (Overall Winner)</h3>
+      <p>Winner Trophy, direct fast-track sponsor interviews, and high-tier hardware perks.</p>
+    </div>
+
+    <div class="prize-tier silver">
+      <span class="prize-amount">₹45,000</span>
+      <h3>🥈 Second Place (Runner Up)</h3>
+      <p>Runner-up Trophy, sponsor cloud credits, and accelerator mentorship sessions.</p>
+    </div>
+
+    <div class="prize-tier bronze">
+      <span class="prize-amount">₹30,000</span>
+      <h3>🥉 Third Place</h3>
+      <p>Third Place Plaque and developer tooling credits.</p>
+    </div>
+
+    <div class="prize-tier">
+      <span class="prize-amount">₹15,000</span>
+      <h3>🌟 Best All-Beginner Team</h3>
+      <p>Awarded to the top-ranking project built entirely by first-time hackathon attendees.</p>
+    </div>
+
+    <div class="prize-tier">
+      <span class="prize-amount">₹15,000</span>
+      <h3>🎨 Excellence in UI/UX & Craft</h3>
+      <p>Recognizing the most intuitive, polished, and delightful user experience.</p>
+    </div>
+
+    <h3 style="margin-top:16px;">Swag for All Hackers</h3>
+    <p>Every attendee receives a limited-edition Embroidered Labyrinth Hoodie, Holographic Sticker Pack, Stainless Steel Bottle, and NFC Participant Passport.</p>
+  </article>
+
+  <!-- 5. Sponsors Station -->
+  <article class="page" id="sponsors" data-station="sponsors" data-icon="cap">
+    <h2>Partners & Sponsors</h2>
+    <p>Labyrinth is powered by industry leaders across developer tooling and AI:</p>
+
+    <ul class="store">
+      <li>
+        <div class="listing">
+          <div style="font-size:28px; width:64px; text-align:center;">✨</div>
+          <div>
+            <h3>Gemini Developer Ecosystem</h3>
+            <p>Title Partner — Multimodal AI models, reasoning APIs, and agent infrastructure.</p>
+          </div>
+          <a class="mc-button get" href="https://ai.google.dev" target="_blank" rel="noopener">Visit ↗</a>
+        </div>
+      </li>
+      <li>
+        <div class="listing">
+          <div style="font-size:28px; width:64px; text-align:center;">🔷</div>
+          <div>
+            <h3>Polygon Labs</h3>
+            <p>Diamond Partner — Scalable blockchain protocols and zero-knowledge infrastructure.</p>
+          </div>
+          <a class="mc-button get" href="https://polygon.technology" target="_blank" rel="noopener">Visit ↗</a>
+        </div>
+      </li>
+      <li>
+        <div class="listing">
+          <div style="font-size:28px; width:64px; text-align:center;">⚡</div>
+          <div>
+            <h3>Supabase</h3>
+            <p>Gold Partner — Open-source Firebase alternative with instant Postgres & Auth.</p>
+          </div>
+          <a class="mc-button get" href="https://supabase.com" target="_blank" rel="noopener">Visit ↗</a>
+        </div>
+      </li>
+      <li>
+        <div class="listing">
+          <div style="font-size:28px; width:64px; text-align:center;">✉️</div>
+          <div>
+            <h3>Resend</h3>
+            <p>Silver Partner — Email platform designed specifically for software engineers.</p>
+          </div>
+          <a class="mc-button get" href="https://resend.com" target="_blank" rel="noopener">Visit ↗</a>
+        </div>
+      </li>
+    </ul>
+  </article>
+
+  <!-- 6. Team Station -->
+  <article class="page" id="team" data-station="team" data-icon="heart">
+    <h2>Organizing Crew</h2>
+    <p>Labyrinth hackathon Organised by GDG NIT Hamirpur:</p>
+
+    <div class="items">
+      <div style="margin-bottom:12px; padding:10px 0; border-bottom:1px solid rgba(0,0,0,0.08);">
+        <h3 style="margin:0 0 2px;">GDG NIT Hamirpur</h3>
+        <p class="aside" style="margin:0 0 4px;"><strong>Organizing Community</strong></p>
+        <p style="margin:0;">Google Developer Groups on Campus NIT Hamirpur.</p>
+      </div>
+      <div style="margin-bottom:12px; padding:10px 0; border-bottom:1px solid rgba(0,0,0,0.08);">
+        <h3 style="margin:0 0 2px;">Prashant</h3>
+        <p class="aside" style="margin:0 0 4px;"><strong>Lead Organizer & Creator</strong></p>
+        <p style="margin:0;">Founder & software architect leading the Labyrinth Hackathon.</p>
+      </div>
+      <div style="margin-bottom:12px; padding:10px 0; border-bottom:1px solid rgba(0,0,0,0.08);">
+        <h3 style="margin:0 0 2px;">Priya Nair</h3>
+        <p class="aside" style="margin:0 0 4px;"><strong>Operations & Logistics</strong></p>
+        <p style="margin:0;">Organizer with 5+ years crafting community developer hackathons across India.</p>
+      </div>
+      <div style="margin-bottom:12px; padding:10px 0; border-bottom:1px solid rgba(0,0,0,0.08);">
+        <h3 style="margin:0 0 2px;">Rohan Deshmukh</h3>
+        <p class="aside" style="margin:0 0 4px;"><strong>Technical Lead & 3D Engineering</strong></p>
+        <p style="margin:0;">Creative technologist and WebGL explorer building interactive graphics engines.</p>
+      </div>
+      <div style="margin-bottom:12px; padding:10px 0;">
+        <h3 style="margin:0 0 2px;">Ananya Patel</h3>
+        <p class="aside" style="margin:0 0 4px;"><strong>Design & Experience</strong></p>
+        <p style="margin:0;">Product designer specializing in accessible ergonomics and delightful interactions.</p>
+      </div>
+    </div>
+  </article>
+
+  <!-- 7. FAQ Station -->
+  <article class="page" id="faq" data-station="faq" data-icon="writing">
+    <h2>FAQ & Rules</h2>
+
+    <details class="faq-box" open>
+      <summary>Who can participate in Labyrinth?</summary>
+      <p>Anyone passionate about software, design, and problem solving! College students, recent graduates, and professional engineers are all welcome.</p>
+    </details>
+
+    <details class="faq-box">
+      <summary>What is the team size requirement?</summary>
+      <p>Teams must consist of 2 to 4 members. Every team must designate one leader during registration.</p>
+    </details>
+
+    <details class="faq-box">
+      <summary>Is there any registration fee?</summary>
+      <p>No, Labyrinth is 100% free of charge! Food, drinks, swag, and access to industry mentors are fully covered by our sponsors.</p>
+    </details>
+
+    <details class="faq-box">
+      <summary>Can teams work on pre-existing projects?</summary>
+      <p>No. All code and designs must be created during the 36-hour hackathon window. Open-source libraries, APIs, and boilerplate templates are allowed.</p>
+    </details>
+
+    <details class="faq-box">
+      <summary>What should I bring to the venue?</summary>
+      <p>Your laptop, power charger, government or student ID, and enthusiasm to build! A sleeping bag is recommended if you plan to stay overnight.</p>
+    </details>
+  </article>
+
+  <!-- 8. Venue Station -->
+  <article class="page" id="venue" data-station="venue" data-icon="map">
+    <h2>Venue & Travel Guide</h2>
+    <p><strong>Tech Innovation Hub</strong><br>42 Cyber Road, Outer Ring, Bengaluru, Karnataka 560103</p>
+
+    <div style="margin:14px 0; padding:14px; background:rgba(0,0,0,0.04); border-radius:8px;">
+      <h3 style="margin-top:0;">🚆 Metro Transit</h3>
+      <p>The nearest metro station is 1.5 km away. Free dedicated feeder shuttles run every 20 minutes on the morning of December 19.</p>
+
+      <h3>🚌 Buses & Cabs</h3>
+      <p>Outer Ring Road express buses stop directly outside the campus gate. A dedicated cab drop-off and pickup bay is situated at Gate 2.</p>
+
+      <h3>🚗 On-Campus Parking</h3>
+      <p>Free secure covered parking is provided for both two-wheelers and four-wheelers for all registered hackathon attendees.</p>
+    </div>
+  </article>
+
+  <!-- 9. Register Station -->
+  <article class="page" id="register" data-station="register" data-icon="seal">
+    <h2>Register for Labyrinth</h2>
+    <p>Register your team for the Labyrinth hackathon! Fill out your details below:</p>
+
+    <form class="mailbox" onsubmit="event.preventDefault(); alert('Registration submitted! You are confirmed for Labyrinth.');">
+      <input name="teamName" maxlength="80" required placeholder="Team Name" aria-label="Team Name (required)">
+      <input name="leaderEmail" type="email" maxlength="120" required placeholder="Team Leader Email" aria-label="Leader Email">
+      <input name="teamSize" type="number" min="2" max="4" value="4" required placeholder="Team Size (2 - 4)" aria-label="Team Size">
+      <input name="trackChoice" maxlength="80" required placeholder="Preferred Track (AI / Web3 / 3D / Open)" aria-label="Track Choice">
+      <textarea name="projectNotes" rows="4" maxlength="500" placeholder="Brief project idea or technology stack..." aria-label="Project Notes"></textarea>
+      <div class="mailbox-foot">
+        <button class="mc-button" type="submit">Submit Registration</button>
+      </div>
+    </form>
+  </article>
+
+  <!-- 10. Mailbox Station -->
+  <article class="page" id="mailbox" data-station="mailbox">
+    <h2>Contact & Inquiries</h2>
+    <form class="mailbox" method="post" enctype="text/plain">
+      <input name="subject" maxlength="80" required placeholder="Subject" aria-label="Subject (required)">
+      <textarea name="message" rows="6" maxlength="1000" required placeholder="Write something to Prashant and the organizers..." aria-label="Write something"></textarea>
+      <input name="contact" maxlength="120" required autocomplete="email" placeholder="Your Email (required)" aria-label="How to reach you (required)">
+      <input class="trap" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <div class="mailbox-foot"><button class="mc-button" type="submit" disabled>Send Message</button></div>
+      <p class="mailbox-status" role="status" aria-live="polite"></p>
+    </form>
+  </article>
+
+</section>
+
+<!-- file:// cannot load the world modules. -->
+<script>
+if (location.protocol === 'file:') {
+  const note = document.createElement('aside');
+  note.id = 'startupNotice';
+  note.innerHTML = '<h2>Open it through a local server</h2><p>Browsers don’t load the 3D world from a double-clicked file. In this folder, run <code>python tools/serve.py</code>. It picks a free port and opens the page. The address is also printed in the terminal.</p>';
+  document.getElementById('pages').before(note);
+  document.getElementById('loading')?.remove();
+  document.body.classList.add('plain');
+}
+</script>
+<noscript><style>#world,#hud,#loading{display:none}#pages{display:block}</style></noscript>
+<script>
+// Automatically remove BetterMapIt and Homecraft badge buttons from the radar
+const purgeBadges = () => {
+  document.querySelectorAll('#minimap .badge, #minimap .badge.credit, #minimap .badge.made, a.badge').forEach(el => el.remove());
+};
+purgeBadges();
+new MutationObserver(purgeBadges).observe(document.documentElement, { childList: true, subtree: true });
+</script>
+<script type="module" src="engine/main.js"></script>
+</body>
+</html>
