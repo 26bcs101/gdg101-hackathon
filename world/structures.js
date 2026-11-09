@@ -424,11 +424,11 @@ export function buildStructures({ layer }) {
     const texture = loader.load('assets/gdg-signboard.png');
     texture.colorSpace = THREE.SRGBColorSpace;
 
-    // Bold poster dimensions: W = 7.6m, H = 4.3m (16:9 cinematic widescreen bold presence)
-    const boardH = 4.3;
-    const boardW = 7.6;
-    const boardY = 2.15; // center at y=2.15 so bottom touches ground y=0
-    const halfThick = 0.06; // clean 12cm depth
+    // Bold poster dimensions: W = 6.6m, H = 4.2m
+    const boardH = 4.2;
+    const boardW = 6.6;
+    const boardY = 2.1; // center at y=2.1 so bottom touches ground y=0
+    const halfThick = 0.46; // 0.92m bold cuboid depth from the side
 
     const geom = new THREE.PlaneGeometry(boardW, boardH);
     const mat = new THREE.MeshLambertMaterial({
@@ -451,19 +451,29 @@ export function buildStructures({ layer }) {
     back.rotation.set(0, Math.PI, 0);
     planes.push(back);
 
-    // Collision obstacle so player cannot walk through the bold board
+    // Solid 3D Voxel Cuboid Structure between front and back faces (gives 0.92m thick cuboid from the side)
+    // 1. Stone foundation footing
+    B.box(x, 0, z, 5.8, 0.35, 0.92, L.stone);
+
+    // 2. Solid wooden cuboid body with timber side panels
+    B.box(x, 0.35, z, 5.6, 2.7, 0.88, { tex: 'wood_panel', top: 'oak' });
+
+    // 3. Heavy oak top beam connecting front and back
+    B.box(x, 3.05, z, 5.7, 0.15, 0.90, L.oak);
+
+    // Collision obstacle matching the full 3D cuboid footprint
     obstacles.push({
-      x0: x - 3.7,
-      x1: x + 3.7,
-      z0: z - 0.35,
-      z1: z + 0.35,
+      x0: x - 3.4,
+      x1: x + 3.4,
+      z0: z - 0.55,
+      z1: z + 0.55,
       level: 0,
     });
 
     // Baked warm lights matching the glowing lanterns on left and right sides
     bakes.push(
-      { id: 'gdg_lantern_w', position: [x - 2.9, 2.3, z], power: 18, radius: 6 },
-      { id: 'gdg_lantern_e', position: [x + 2.8, 2.2, z], power: 18, radius: 6 }
+      { id: 'gdg_lantern_w', position: [x - 2.8, 2.3, z], power: 18, radius: 6 },
+      { id: 'gdg_lantern_e', position: [x + 2.7, 2.2, z], power: 18, radius: 6 }
     );
   }
 
