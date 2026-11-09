@@ -424,10 +424,11 @@ export function buildStructures({ layer }) {
     const texture = loader.load('assets/gdg-signboard.png');
     texture.colorSpace = THREE.SRGBColorSpace;
 
-    // Dimensions: Height 4.0m, Width 5.4m (Aspect ratio ~1.35)
-    const boardH = 4.0;
-    const boardW = 5.4;
-    const boardY = 2.0; // center at y=2.0 so bottom touches ground y=0
+    // Bold poster dimensions: W = 7.6m, H = 4.3m (16:9 cinematic widescreen bold presence)
+    const boardH = 4.3;
+    const boardW = 7.6;
+    const boardY = 2.15; // center at y=2.15 so bottom touches ground y=0
+    const halfThick = 0.06; // clean 12cm depth
 
     const geom = new THREE.PlaneGeometry(boardW, boardH);
     const mat = new THREE.MeshLambertMaterial({
@@ -440,20 +441,20 @@ export function buildStructures({ layer }) {
 
     // Front Plane (facing South toward spawn at z = 16.5)
     const front = new THREE.Mesh(geom, mat);
-    front.position.set(x, boardY, z + 0.04);
+    front.position.set(x, boardY, z + halfThick);
     front.rotation.set(0, 0, 0);
     planes.push(front);
 
     // Back Plane (facing North, rotated Math.PI so it is un-mirrored and identical from both sides)
     const back = new THREE.Mesh(geom, mat);
-    back.position.set(x, boardY, z - 0.04);
+    back.position.set(x, boardY, z - halfThick);
     back.rotation.set(0, Math.PI, 0);
     planes.push(back);
 
-    // Collision obstacle so player cannot walk through the board
+    // Collision obstacle so player cannot walk through the bold board
     obstacles.push({
-      x0: x - 2.5,
-      x1: x + 2.5,
+      x0: x - 3.7,
+      x1: x + 3.7,
       z0: z - 0.35,
       z1: z + 0.35,
       level: 0,
@@ -461,8 +462,8 @@ export function buildStructures({ layer }) {
 
     // Baked warm lights matching the glowing lanterns on left and right sides
     bakes.push(
-      { id: 'gdg_lantern_w', position: [x - 2.2, 2.2, z], power: 16, radius: 5 },
-      { id: 'gdg_lantern_e', position: [x + 2.1, 2.1, z], power: 16, radius: 5 }
+      { id: 'gdg_lantern_w', position: [x - 2.9, 2.3, z], power: 18, radius: 6 },
+      { id: 'gdg_lantern_e', position: [x + 2.8, 2.2, z], power: 18, radius: 6 }
     );
   }
 
