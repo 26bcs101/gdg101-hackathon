@@ -24,7 +24,7 @@ export function build({ grid, layer, materials }) {
   buildIsland(grid, ISLAND, { surfaceAt, corner: 10, wobble: 0 });
   const forest = buildForest(grid, layer, TREES);
 
-  const out = { B: new BoxBatch(layer), obstacles: [], hotspots: [], bakes: [], planes: [] };
+  const out = { B: new BoxBatch(layer), obstacles: [], hotspots: [], bakes: [], planes: [], grid, forest };
   for (const station of PLAN) {
     const def = BUILDS[station.id];
     if (def) placeStation(out, station, def);

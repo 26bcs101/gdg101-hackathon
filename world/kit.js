@@ -84,16 +84,29 @@ function bounds(x, z, yaw, lx, lz, w, d) {
 // out = { B, obstacles, hotspots, bakes, planes }: the lists build.js returns.
 // station = { id, x, z, face }, def = { size: [w, h, d], build(k) }.
 export function placeStation(out, station, def) {
-  const { B, obstacles, hotspots, bakes, planes } = out;
+  const { B, obstacles, hotspots, bakes, planes, grid, forest } = out;
   const { id, x, z } = station, yaw = yawOf(station.face);
+  const [sw, sh, sd] = def.size;
   const k = {
     M,
     mergeByMaterial,
+    grid,
     // A box in station space; y is its bottom face (see BoxBatch.box).
     box: (...args) => B.box(...args),
     // Something the player can't walk through, padded 5 cm as AGENTS.md asks.
-    solid(lx, lz, w, d, level = 0) {
-      obstacles.push({ ...bounds(x, z, yaw, lx, lz, w + 0.1, d + 0.1), level });
+    solid(lx, lz, w, d, level = 0, height = sh) {
+      const b = bounds(x, z, yaw, lx, lz, w + 0.1, d + 0.1);
+      obstacles.push({ ...b, level });
+      if (grid) {
+        const x0 = Math.floor(b.x0), x1 = Math.ceil(b.x1);
+        const z0 = Math.floor(b.z0), z1 = Math.ceil(b.z1);
+        const y0 = Math.floor(level);
+        const y1 = Math.ceil(level + height);
+        grid.fill(x0, y0, z0, x1, y1, z1, 'stone', 'forestCollision');
+        if (forest?.tops) {
+          forest.tops.push({ x0, x1, z0, z1, y: y1, site: id });
+        }
+      }
     },
     // A lamp baked into the night lighting. dir is a local direction or null.
     light(lx, y, lz, power, radius, dir = null) {

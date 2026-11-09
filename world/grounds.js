@@ -56,7 +56,7 @@ export function surfaceAt(x, z) {
 }
 
 // ---------- Decoration ----------
-export function buildDecor({ B, layer, materials, obstacles, bakes, planes }) {
+export function buildDecor({ B, layer, materials, obstacles, bakes, planes, grid, forest }) {
   // Lamp posts: a black post with a lantern; their light is baked for the night.
   LAMPS.forEach(([x, z], i) => {
     B.box(x, 0, z, 0.3, 0.2, 0.3, M.stone);
@@ -84,11 +84,11 @@ export function buildDecor({ B, layer, materials, obstacles, bakes, planes }) {
   }
   planes.push(buildTufts(layer, materials, tufts));
 
-  buildSignboard({ B, obstacles, bakes, planes }, SIGNBOARD.x, SIGNBOARD.z);
+  buildSignboard({ B, obstacles, bakes, planes, grid, forest }, SIGNBOARD.x, SIGNBOARD.z);
 }
 
 // The GDG signboard: the poster on both faces of a timber block, facing south.
-function buildSignboard({ B, obstacles, bakes, planes }, x, z) {
+function buildSignboard({ B, obstacles, bakes, planes, grid, forest }, x, z) {
   const texture = new THREE.TextureLoader().load('assets/gdg-signboard.webp');
   texture.colorSpace = THREE.SRGBColorSpace;
   const boardW = 6.6, boardH = 4.2, half = 0.46;
@@ -105,6 +105,16 @@ function buildSignboard({ B, obstacles, bakes, planes }, x, z) {
   B.box(x, 0.35, z, 5.6, 2.7, 0.88, { tex: 'wood_panel', top: 'oak' });
   B.box(x, 3.05, z, 5.7, 0.15, 0.9, M.oak);
   obstacles.push({ x0: x - 3.4, x1: x + 3.4, z0: z - 0.55, z1: z + 0.55, level: 0 });
+  if (grid) {
+    grid.fill(Math.floor(x - 3.4), 0, Math.floor(z - 0.55), Math.ceil(x + 3.4), 4, Math.ceil(z + 0.55), 'stone', 'forestCollision');
+    if (forest?.tops) {
+      forest.tops.push({
+        x0: Math.floor(x - 3.4), x1: Math.ceil(x + 3.4),
+        z0: Math.floor(z - 0.55), z1: Math.ceil(z + 0.55),
+        y: 4, site: 'signboard'
+      });
+    }
+  }
   bakes.push(
     { id: 'board-w', position: [x - 2.8, 2.3, z + 0.8], power: 2.2, radius: 6, direction: null },
     { id: 'board-e', position: [x + 2.7, 2.2, z + 0.8], power: 2.2, radius: 6, direction: null },
