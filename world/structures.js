@@ -7,6 +7,7 @@
   buildTeam(-14, -14);
   buildFaq(-20, -2);
   buildVenue(-15, 8);
+  buildRegister(8, 22);
 
   return {
     batches: { static: B },
