@@ -36,7 +36,8 @@ export function build({ grid, layer }) {
 
   return {
     batches: structs.batches,
-        obstacles: structs.obstacles,
+    planes: structs.planes || [],
+    obstacles: structs.obstacles,
     hotspots: structs.hotspots,
     bakes: structs.bakes,
     forest,
