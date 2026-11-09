@@ -1,24 +1,72 @@
-// Venue: a cartographer's deck with a map table, a telescope and supplies.
+// Venue: 3D Voxel GDG Labyrinth Venue Pavilion Building.
 // Local frame: (0, 0) is the centre, +z is the front (faces the path).
-export default {
-  size: [3.0, 2.0, 3.0],
-  build({ box, solid, light, M }) {
-    box(0, 0, 0, 2.8, 0.35, 2.8, M.deck);
-    // Rails along the back and left.
-    box(0, 0.35, -1.3, 2.7, 0.5, 0.08, M.log);
-    box(-1.3, 0.35, 0, 0.08, 0.5, 2.7, M.log);
-    // Map table.
-    box(0.3, 0.35, -0.15, 1.3, 0.75, 0.85, M.wood);
-    box(0.3, 1.1, -0.15, 1.0, 0.02, 0.65, M.paper);
-    box(0.65, 1.12, 0.1, 0.25, 0.02, 0.2, M.lapis);
-    // Telescope.
-    box(-0.7, 0.35, 0.6, 0.45, 0.85, 0.45, M.wood);
-    box(-0.7, 1.2, 0.6, 0.65, 0.12, 0.12, M.gold);
-    // Barrel and crate.
-    box(0.9, 0.35, 0.8, 0.55, 0.65, 0.55, M.log);
-    box(-0.8, 0.35, -0.8, 0.5, 0.5, 0.5, M.oak);
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
-    solid(0, 0, 2.8, 2.8);
-    light(0.3, 1.2, -0.15, 2.0, 8);
+// Merges all GLTF meshes into a single vertex-colored mesh to stay strictly within draw call budget (≤ 60).
+function mergeVenueModel(root) {
+  root.updateMatrixWorld(true);
+  const geoms = [];
+
+  root.traverse((child) => {
+    if (child.isMesh && child.geometry) {
+      const geom = child.geometry.clone();
+      geom.applyMatrix4(child.matrixWorld);
+
+      const count = geom.attributes.position.count;
+      const colors = new Float32Array(count * 3);
+      const mat = child.material;
+      const c = mat?.color || new THREE.Color(0xffffff);
+
+      // Give glowing letters and gold accents a subtle boost in vertex color
+      const isEmissive = mat?.emissive && (mat.emissive.r > 0.05 || mat.emissive.g > 0.05 || mat.emissive.b > 0.05);
+      const boost = isEmissive ? 1.25 : 1.0;
+
+      for (let i = 0; i < count; i++) {
+        colors[i * 3] = Math.min(1, c.r * boost);
+        colors[i * 3 + 1] = Math.min(1, c.g * boost);
+        colors[i * 3 + 2] = Math.min(1, c.b * boost);
+      }
+      geom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      geoms.push(geom);
+    }
+  });
+
+  const merged = mergeGeometries(geoms, false);
+  const material = new THREE.MeshStandardMaterial({
+    vertexColors: true,
+    roughness: 0.35,
+    metalness: 0.15,
+    side: THREE.DoubleSide,
+  });
+
+  const mesh = new THREE.Mesh(merged, material);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  return mesh;
+}
+
+export default {
+  size: [5.6, 2.8, 4.4],
+  build({ box, solid, light, plane, M }) {
+    // 3D GLTF Venue Building Group
+    const group = new THREE.Group();
+    plane(group, 0, 0, 0);
+
+    const loader = new GLTFLoader();
+    loader.load('assets/gdg_labyrinth_venue_building.glb', (gltf) => {
+      const model = gltf.scene;
+      model.scale.setScalar(0.28);
+      const optimized = mergeVenueModel(model);
+      group.add(optimized);
+    });
+
+    solid(0, 0, 5.6, 4.4);
+    // Interior booth glow and exterior sign lights for night
+    light(0, 1.3, 0.2, 2.5, 8);
+    light(0, 2.2, 1.4, 2.2, 8);
+    light(-1.8, 1.8, 0.8, 2.0, 7);
+    light(1.8, 1.8, 0.8, 2.0, 7);
   },
 };

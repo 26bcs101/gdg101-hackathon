@@ -2,9 +2,10 @@
 // plaza with its maze inlay, lamp posts, flowers and the GDG signboard.
 // Paths are the island's own top blocks, so they cost no extra draw calls.
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { inRect } from '@engine/world/terrain.js';
 import { buildTufts } from '@engine/world/landscape.js';
-import { rng } from '@engine/world/textures.js';
+import { rng, canvasTexture } from '@engine/world/textures.js';
 import { M } from './kit.js';
 import { FACING } from './frame.js';
 import { PLAN, RING, AVENUE, MAZE, LAMPS, TREES, SIGNBOARD } from './layout.js';
@@ -87,36 +88,100 @@ export function buildDecor({ B, layer, materials, obstacles, bakes, planes, grid
   buildSignboard({ B, obstacles, bakes, planes, grid, forest }, SIGNBOARD.x, SIGNBOARD.z);
 }
 
-// The GDG signboard: the poster on both faces of a timber block, facing south.
+// The GDG signboard: a solid 3D cuboid monument featuring the GDG adventure art
+// on front & back faces with solid timber log side pillars, top beam header,
+// grass foundation, and solid voxel collision so it looks substantial from all angles.
 function buildSignboard({ B, obstacles, bakes, planes, grid, forest }, x, z) {
   const texture = new THREE.TextureLoader().load('assets/gdg-signboard.webp');
   texture.colorSpace = THREE.SRGBColorSpace;
-  const boardW = 6.6, boardH = 4.2, half = 0.46;
-  const geometry = new THREE.PlaneGeometry(boardW, boardH);
-  const material = new THREE.MeshLambertMaterial({ map: texture, transparent: true, alphaTest: 0.25 });
-  const front = new THREE.Mesh(geometry, material);
-  front.position.set(x, boardH / 2, z + half);
-  const back = new THREE.Mesh(geometry, material);
-  back.position.set(x, boardH / 2, z - half);
-  back.rotation.y = Math.PI;
-  planes.push(front, back);
 
-  B.box(x, 0, z, 5.8, 0.35, 0.92, M.stone);
-  B.box(x, 0.35, z, 5.6, 2.7, 0.88, { tex: 'wood_panel', top: 'oak' });
-  B.box(x, 3.05, z, 5.7, 0.15, 0.9, M.oak);
-  obstacles.push({ x0: x - 3.4, x1: x + 3.4, z0: z - 0.55, z1: z + 0.55, level: 0 });
+  const boardW = 5.6;
+  const boardH = 4.15;
+  const depth = 0.62;
+  const half = depth / 2;
+  const frameH = 3.32; // height of the timber frame on sides
+
+  // 1. Front & Back poster planes merged into 1 single draw call
+  const posterMat = new THREE.MeshLambertMaterial({
+    map: texture,
+    transparent: true,
+    alphaTest: 0.25,
+    side: THREE.DoubleSide
+  });
+
+  const frontGeom = new THREE.PlaneGeometry(boardW, boardH);
+  frontGeom.translate(x, boardH / 2, z + half);
+
+  const backGeom = new THREE.PlaneGeometry(boardW, boardH);
+  backGeom.rotateY(Math.PI);
+  backGeom.translate(x, boardH / 2, z - half);
+
+  const posterGeom = mergeGeometries([frontGeom, backGeom], false);
+  const posterMesh = new THREE.Mesh(posterGeom, posterMat);
+  planes.push(posterMesh);
+
+  // 2. Solid 3D Voxel Cuboid Structure (Batched into BoxBatch for 0 extra draw calls)
+  // Left and right vertical timber log pillars (matching the side posts of the artwork)
+  const postW = 0.42;
+  const postX = boardW / 2 - postW / 2;
+  B.box(x - postX, 0.35, z, postW, frameH - 0.35, depth - 0.04, { tex: 'log', top: 'log_top' });
+  B.box(x + postX, 0.35, z, postW, frameH - 0.35, depth - 0.04, { tex: 'log', top: 'log_top' });
+
+  // Top horizontal timber header beam connecting the posts
+  B.box(x, frameH - 0.18, z, boardW - 0.1, 0.22, depth - 0.04, M.oak);
+
+  // Bottom timber rail
+  B.box(x, 0.38, z, boardW - 0.1, 0.20, depth - 0.06, M.wood);
+
+  // Recessed inner backing board strictly behind the parchment area
+  B.box(x, 0.58, z, 3.6, frameH - 0.85, depth - 0.12, M.oak);
+
+  // Solid grass & dirt foundation footing
+  B.box(x, 0, z, boardW + 0.1, 0.38, depth - 0.06, { tex: 'dirt', top: 'grass_top' });
+  // Cobblestone boulder supports at the base corners
+  B.box(x - postX - 0.08, 0, z, 0.48, 0.42, depth + 0.12, M.stone);
+  B.box(x + postX + 0.08, 0, z, 0.48, 0.42, depth + 0.12, M.stone);
+
+  // 3D Voxel Lanterns on the side posts
+  // Left lantern (matches glowing lantern on left post in artwork)
+  B.box(x - postX - 0.22, 2.05, z, 0.04, 0.32, 0.04, M.blackMetal);
+  B.box(x - postX - 0.22, 1.82, z, 0.24, 0.26, 0.24, M.blackMetal);
+  B.box(x - postX - 0.22, 1.84, z, 0.18, 0.20, 0.18, M.lanternGlow);
+
+  // Right lantern (matches glowing lantern on right post in artwork)
+  B.box(x + postX + 0.22, 1.95, z, 0.04, 0.32, 0.04, M.blackMetal);
+  B.box(x + postX + 0.22, 1.72, z, 0.24, 0.26, 0.24, M.blackMetal);
+  B.box(x + postX + 0.22, 1.74, z, 0.18, 0.20, 0.18, M.lanternGlow);
+
+  // Full solid collision obstacle matching cuboid bounds
+  obstacles.push({
+    x0: x - boardW / 2 - 0.3,
+    x1: x + boardW / 2 + 0.3,
+    z0: z - depth / 2 - 0.25,
+    z1: z + depth / 2 + 0.25,
+    level: 0
+  });
+
   if (grid) {
-    grid.fill(Math.floor(x - 3.4), 0, Math.floor(z - 0.55), Math.ceil(x + 3.4), 4, Math.ceil(z + 0.55), 'stone', 'forestCollision');
+    grid.fill(
+      Math.floor(x - boardW / 2 - 0.2), 0, Math.floor(z - depth / 2 - 0.1),
+      Math.ceil(x + boardW / 2 + 0.2), 4, Math.ceil(z + depth / 2 + 0.1),
+      'stone', 'forestCollision'
+    );
     if (forest?.tops) {
       forest.tops.push({
-        x0: Math.floor(x - 3.4), x1: Math.ceil(x + 3.4),
-        z0: Math.floor(z - 0.55), z1: Math.ceil(z + 0.55),
+        x0: Math.floor(x - boardW / 2 - 0.2), x1: Math.ceil(x + boardW / 2 + 0.2),
+        z0: Math.floor(z - depth / 2 - 0.1), z1: Math.ceil(z + depth / 2 + 0.1),
         y: 4, site: 'signboard'
       });
     }
   }
+
+  // Warm night lighting for both front and back
   bakes.push(
-    { id: 'board-w', position: [x - 2.8, 2.3, z + 0.8], power: 2.2, radius: 6, direction: null },
-    { id: 'board-e', position: [x + 2.7, 2.2, z + 0.8], power: 2.2, radius: 6, direction: null },
+    { id: 'board-sw', position: [x - 2.4, 2.0, z + 0.8], power: 2.2, radius: 7, direction: null },
+    { id: 'board-se', position: [x + 2.4, 1.9, z + 0.8], power: 2.2, radius: 7, direction: null },
+    { id: 'board-nw', position: [x - 2.4, 2.0, z - 0.8], power: 2.2, radius: 7, direction: null },
+    { id: 'board-ne', position: [x + 2.4, 1.9, z - 0.8], power: 2.2, radius: 7, direction: null },
   );
 }
