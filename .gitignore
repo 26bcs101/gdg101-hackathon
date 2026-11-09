@@ -7,3 +7,4 @@ tools/.serve-url
 .impeccable/
 .release/
 *.glb
+!assets/*.glb

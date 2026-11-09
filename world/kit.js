@@ -7,9 +7,40 @@
 // planes into world coordinates, so a station can be moved or turned in
 // layout.js without touching its build file.
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { yawOf, toWorld } from './frame.js';
 
 export { FACING, yawOf, toWorld } from './frame.js';
+
+// Helper to merge GLTF model meshes sharing the same material to stay strictly within draw budget
+export function mergeByMaterial(root) {
+  root.updateMatrixWorld(true);
+  const byMat = new Map();
+  root.traverse((child) => {
+    if (child.isMesh && child.geometry) {
+      const geom = child.geometry.clone();
+      geom.applyMatrix4(child.matrixWorld);
+      const mat = child.material;
+      if (!byMat.has(mat)) byMat.set(mat, []);
+      byMat.get(mat).push(geom);
+    }
+  });
+
+  const mergedGroup = new THREE.Group();
+  for (const [mat, geoms] of byMat.entries()) {
+    const mergedGeom = mergeGeometries(geoms, false);
+    if (mergedGeom) {
+      mat.side = THREE.DoubleSide;
+      mat.metalness = 0.15;
+      mat.roughness = 0.35;
+      const mesh = new THREE.Mesh(mergedGeom, mat);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      mergedGroup.add(mesh);
+    }
+  }
+  return mergedGroup;
+}
 
 export const M = {
   oak: { tex: 'oak' },
@@ -57,6 +88,7 @@ export function placeStation(out, station, def) {
   const { id, x, z } = station, yaw = yawOf(station.face);
   const k = {
     M,
+    mergeByMaterial,
     // A box in station space; y is its bottom face (see BoxBatch.box).
     box: (...args) => B.box(...args),
     // Something the player can't walk through, padded 5 cm as AGENTS.md asks.
