@@ -65,7 +65,8 @@ try {
     description: 'Update the shared Homecraft engine while preserving site customizations.', license: 'MIT', engines: { node: '>=22' },
     bin: { 'homecraft-update': 'update-engine.mjs' }, files: ['update-engine.mjs'] }, null, 2));
   copyFileSync(join(root, 'LICENSE'), join(temporary, 'LICENSE'));
-  const packed = JSON.parse(execFileSync('npm', ['pack', '--json', '--ignore-scripts'], { cwd: temporary, encoding: 'utf8' }));
+  const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+  const packed = JSON.parse(execFileSync(npmCmd, ['pack', '--json', '--ignore-scripts'], { cwd: temporary, encoding: 'utf8', shell: process.platform === 'win32' }));
   copyFileSync(join(temporary, packed[0].filename), join(out, 'homecraft-updater.tgz'));
 } finally { rmSync(temporary, { recursive: true, force: true }); }
 const digests = ['homecraft-engine.json', 'homecraft-updater.tgz'].map(file => `${createHash('sha256').update(readFileSync(join(out, file))).digest('hex')}  ${file}`).join('\n');

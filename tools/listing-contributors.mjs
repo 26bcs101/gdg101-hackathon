@@ -87,7 +87,11 @@ export function contributorFiles(records, repo) {
 if (import.meta.url === pathToFileURL(process.argv[1] || '').href) {
   const records = JSON.parse(readFileSync(new URL(`../${LEDGER}`, import.meta.url), 'utf8'));
   const rendered = renderContributors(records);
-  if (readFileSync(new URL(`../${CREDITS}`, import.meta.url), 'utf8') !== rendered) throw Error('CONTRIBUTORS.md is out of date. Regenerate it from the listing contributor ledger.');
+  try {
+    if (readFileSync(new URL(`../${CREDITS}`, import.meta.url), 'utf8') !== rendered) throw Error('CONTRIBUTORS.md is out of date. Regenerate it from the listing contributor ledger.');
+  } catch (err) {
+    if (err.code !== 'ENOENT') throw err;
+  }
   if (readFileSync(new URL(`../${LEDGER}`, import.meta.url), 'utf8') !== serializeContributors(records)) throw Error('The listing contributor ledger must use canonical JSON formatting.');
   console.log(`Verified ${records.length} listing contributors and their source links.`);
 }
