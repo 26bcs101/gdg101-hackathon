@@ -1,0 +1,90 @@
+// Shared building kit for the Labyrinth world.
+//
+// M is the material palette every station uses, so the island keeps one look.
+// placeStation() runs a station's build(k) in that station's own frame:
+// local (0, 0) is the station centre and local +z is its FRONT (the side that
+// faces the path and the visitor). The kit turns local footprints, lights and
+// planes into world coordinates, so a station can be moved or turned in
+// layout.js without touching its build file.
+import * as THREE from 'three';
+import { yawOf, toWorld } from './frame.js';
+
+export { FACING, yawOf, toWorld } from './frame.js';
+
+export const M = {
+  oak: { tex: 'oak' },
+  wood: { tex: 'wood_panel' },
+  deck: { tex: 'deck' },
+  log: { tex: 'log', top: 'log_top' },
+  stone: { tex: 'stone' },
+  deepslate: { tex: 'deepslate' },
+  concrete: { tex: 'concrete' },
+  pavers: { tex: 'pavers' },
+  travertine: { tex: 'travertine' },
+  books: { tex: 'bookshelf', top: 'wood_panel' },
+  steel: { tex: 'steel' },
+  blackMetal: { tex: 'black_metal' },
+  gold: { tex: 'paint', tint: 0xf1c40f },
+  goldGlow: { tex: 'paint', tint: 0xf39c12, emissive: 0.6 },
+  diamond: { tex: 'paint', tint: 0x00cec9, emissive: 0.5 },
+  emerald: { tex: 'paint', tint: 0x2ecc71, emissive: 0.7 },
+  lapis: { tex: 'paint', tint: 0x0984e3 },
+  obsidian: { tex: 'paint', tint: 0x19142b },
+  redVelvet: { tex: 'velvet', tint: 0xb71540 },
+  paper: { tex: 'paint', tint: 0xfffbe6 },
+  fireGlow: { tex: 'paint', tint: 0xff7700, emissive: 1 },
+  lanternGlow: { tex: 'paint', tint: 0xffb142, emissive: 1 },
+  beaconGlow: { tex: 'paint', tint: 0x74b9ff, emissive: 1 },
+  purplePortal: { tex: 'paint', tint: 0x8e44ad, emissive: 0.95 },
+  paint: tint => ({ tex: 'paint', tint }),
+  light: (tint, emissive = 1) => ({ tex: 'paint', tint, emissive }),
+};
+
+// World-aligned bounds of a local rectangle centred on (lx, lz).
+function bounds(x, z, yaw, lx, lz, w, d) {
+  let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+  for (const [sx, sz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+    const [wx, wz] = toWorld(x, z, yaw, lx + sx * w / 2, lz + sz * d / 2);
+    x0 = Math.min(x0, wx); x1 = Math.max(x1, wx); z0 = Math.min(z0, wz); z1 = Math.max(z1, wz);
+  }
+  return { x0, x1, z0, z1 };
+}
+
+// out = { B, obstacles, hotspots, bakes, planes }: the lists build.js returns.
+// station = { id, x, z, face }, def = { size: [w, h, d], build(k) }.
+export function placeStation(out, station, def) {
+  const { B, obstacles, hotspots, bakes, planes } = out;
+  const { id, x, z } = station, yaw = yawOf(station.face);
+  const k = {
+    M,
+    // A box in station space; y is its bottom face (see BoxBatch.box).
+    box: (...args) => B.box(...args),
+    // Something the player can't walk through, padded 5 cm as AGENTS.md asks.
+    solid(lx, lz, w, d, level = 0) {
+      obstacles.push({ ...bounds(x, z, yaw, lx, lz, w + 0.1, d + 0.1), level });
+    },
+    // A lamp baked into the night lighting. dir is a local direction or null.
+    light(lx, y, lz, power, radius, dir = null) {
+      const [wx, wz] = toWorld(x, z, yaw, lx, lz);
+      let direction = null;
+      if (dir) {
+        const [dx, dz] = toWorld(0, 0, yaw, dir[0], dir[2]);
+        direction = [dx, dir[1], dz];
+      }
+      bakes.push({ id: `${id}-${bakes.length}`, position: [wx, y, wz], power, radius, direction });
+    },
+    // A THREE.Mesh placed in station space (signs, posters). Each one is a draw call.
+    plane(mesh, lx, y, lz, ry = 0) {
+      const [wx, wz] = toWorld(x, z, yaw, lx, lz);
+      mesh.position.set(wx, y, wz);
+      mesh.rotation.y = yaw + ry;
+      planes.push(mesh);
+      return mesh;
+    },
+  };
+  B.at(x, 0, z, yaw, () => def.build(k));
+  // Click and proximity box: the station's whole size.
+  const [w, h, d] = def.size;
+  const r = bounds(x, z, yaw, 0, 0, w, d);
+  hotspots.push({ id, box: new THREE.Box3(new THREE.Vector3(r.x0, 0, r.z0), new THREE.Vector3(r.x1, h, r.z1)) });
+}

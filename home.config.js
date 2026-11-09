@@ -10,7 +10,8 @@ export default {
     longitude: 77.5946,
     timezone: 'Asia/Kolkata',
   },
-  dock: ['welcome', 'tracks', 'schedule', 'prizes', 'sponsors', 'register'],
+  // The top bar links every station; the Dock keeps five so it fits beside the radar on phones.
+  dock: ['welcome', 'tracks', 'schedule', 'prizes', 'register'],
   mailbox: { endpoint: '', email: 'prashant@labyrinth.dev', turnstileSitekey: '' },
   badge: false,
 };

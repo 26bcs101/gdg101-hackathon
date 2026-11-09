@@ -1,64 +1,56 @@
+// Builds the Labyrinth island: terrain and paths, the stations from
+// world/stations/, decoration, trees, and the invisible edge of the world.
+import { BoxBatch } from '@engine/world/blocks.js';
 import { buildIsland } from '@engine/world/terrain.js';
 import { buildForest } from '@engine/world/landscape.js';
-import { ISLAND, TREES } from './layout.js';
-import { buildStructures } from './structures.js';
+import { ISLAND, PLAN, TREES } from './layout.js';
+import { placeStation } from './kit.js';
+import { BUILDS } from './stations/index.js';
+import { surfaceAt, buildDecor } from './grounds.js';
 
-export function build({ grid, layer }) {
-  // Preserve landscape terrain without alterations
-  buildIsland(grid, ISLAND, { surfaceAt: () => 'grass', corner: 10, wobble: 0 });
+// Keeps visitors on the island: a wall around its edge and a ceiling 50 m up.
+const CEILING = 50;
+const outside = (x, z) => x <= ISLAND.x0 + 0.3 || x >= ISLAND.x1 - 0.3 || z <= ISLAND.z0 + 0.3 || z >= ISLAND.z1 - 0.3;
+const edge = {
+  levels() {},
+  collides: (x, feet, z) => feet + 1.8 >= CEILING || (feet < CEILING && feet >= -10 && outside(x, z)),
+  obstructed: (x, z, y) => y < CEILING && y >= -10 && outside(x, z),
+  pick: () => null,
+  ladderAt: () => null,
+  spots: () => [],
+};
+
+export function build({ grid, layer, materials }) {
+  buildIsland(grid, ISLAND, { surfaceAt, corner: 10, wobble: 0 });
   const forest = buildForest(grid, layer, TREES);
-  const structs = buildStructures({ layer });
 
-  // Invisible border about 50 blocks above the island and along the edges up to 50 height
-  const borders = {
-    levels(x, z, out) {},
-    collides(x, feet, z) {
-      // Top ceiling: 50 blocks above the island
-      if (feet + 1.8 >= 50) return true;
-      // Edge borders along the perimeter up to 50 height
-      if (feet < 50 && feet >= -10) {
-        if (x <= ISLAND.x0 + 0.3 || x >= ISLAND.x1 - 0.3) return true;
-        if (z <= ISLAND.z0 + 0.3 || z >= ISLAND.z1 - 0.3) return true;
-      }
-      return false;
-    },
-    obstructed(x, z, y) {
-      if (y < 50 && y >= -10) {
-        if (x <= ISLAND.x0 + 0.3 || x >= ISLAND.x1 - 0.3) return true;
-        if (z <= ISLAND.z0 + 0.3 || z >= ISLAND.z1 - 0.3) return true;
-      }
-      return false;
-    },
-    pick() { return null; },
-    ladderAt() { return null; },
-    spots() { return []; },
-  };
+  const out = { B: new BoxBatch(layer), obstacles: [], hotspots: [], bakes: [], planes: [] };
+  for (const station of PLAN) {
+    const def = BUILDS[station.id];
+    if (def) placeStation(out, station, def);
+    else console.warn(`No build for station "${station.id}" in world/stations/index.js`);
+  }
+  buildDecor({ ...out, layer, materials });
 
   return {
-    batches: structs.batches,
-    planes: structs.planes || [],
-    obstacles: structs.obstacles,
-    hotspots: structs.hotspots,
-    bakes: structs.bakes,
+    batches: { static: out.B },
+    planes: out.planes,
+    obstacles: out.obstacles,
+    hotspots: out.hotspots,
+    bakes: out.bakes,
     forest,
-    sites: [borders],
+    sites: [edge],
   };
 }
 
 export function setup({ player }) {
-  // Ensure BetterMapIt and Homecraft badge buttons are removed from the radar
-  document.querySelectorAll('#minimap .badge, #minimap .badge.credit, #minimap .badge.made, a.badge').forEach(el => el.remove());
-
+  const minX = ISLAND.x0 + 0.5, maxX = ISLAND.x1 - 0.5, minZ = ISLAND.z0 + 0.5, maxZ = ISLAND.z1 - 0.5;
   return {
-    update(dt) {
-      if (!player) return;
-      // Safety bounds clamp to keep player within island perimeter
-      const minX = ISLAND.x0 + 0.5, maxX = ISLAND.x1 - 0.5;
-      const minZ = ISLAND.z0 + 0.5, maxZ = ISLAND.z1 - 0.5;
-      if (player.pos.x < minX) player.pos.x = minX;
-      else if (player.pos.x > maxX) player.pos.x = maxX;
-      if (player.pos.z < minZ) player.pos.z = minZ;
-      else if (player.pos.z > maxZ) player.pos.z = maxZ;
-    }
+    update() {
+      // A last guard in case flight or a zip slips past the edge.
+      const p = player.pos;
+      if (p.x < minX) p.x = minX; else if (p.x > maxX) p.x = maxX;
+      if (p.z < minZ) p.z = minZ; else if (p.z > maxZ) p.z = maxZ;
+    },
   };
 }

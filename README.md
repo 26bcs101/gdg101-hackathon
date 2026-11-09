@@ -12,17 +12,8 @@ Built with Three.js and native ES modules, running completely in modern browsers
 ## ✨ Features
 
 - **🎮 Immersive 3D Voxel World**: Explore the floating hackathon island freely with authentic Minecraft-style voxel graphics, custom lighting bakes, and dynamic day/night atmospheric transitions.
-- **🏛️ Interactive Stations & Monuments**:
-  - **Central GDG Monument**: Handcrafted double-sided banner with the official Google Developer Groups `< >` emblem and NIT Hamirpur insignia.
-  - **Welcome & Info (`x: 0, z: 12`)**: Hackathon introduction, key statistics, and mission statement.
-  - **Challenge Tracks (`x: -16, z: 0`)**: AI & Intelligent Systems, Web3 & Decentralized Apps, 3D Web & Creative Tooling, Open Innovation.
-  - **Event Schedule (`x: 16, z: 0`)**: Complete 36-hour milestone timeline and mentoring checkpoints.
-  - **Prizes & Swag (`x: 0, z: -10`)**: ₹1,50,000+ total prize pool, category plaques, hardware perks, and sponsor bounty tracks.
-  - **Sponsors & Partners (`x: 0, z: -18`)**: Platform sponsors, developer tooling grants, and cloud credits.
-  - **Team & Mentors (`x: -14, z: -14`)**: Organizing committee, core student leads, and industry mentors.
-  - **FAQ (`x: -20, z: -2`)**: Eligibility, team size (2–4 hackers), logistics, and hardware rules.
-  - **Venue & Logistics (`x: -15, z: 8`)**: NIT Hamirpur campus venue details, high-speed Wi-Fi, lab equipment, and meals.
-  - **Registration (`x: 8, z: 22`)**: Team registration portal and participant application form.
+- **🌐 Website first, game second**: a top bar with plain links to every section, a landing hero with dates and a countdown, name tags over every building, and click-a-building-to-open. Visitors who never play games can use it like a normal site; `?plain` shows a page view.
+- **🏛️ Stations around a maze plaza** (positions in [`world/layout.js`](world/layout.js)): Welcome and Register flank the avenue from spawn; Tracks and Schedule on the west side; Prizes, Sponsors and Team to the north; FAQ and Venue to the east. The GDG signboard stands behind a maze inlay at the centre of the plaza.
 - **📜 Minecraft GUI Content Drawers**: High-contrast, beveled stone dialog panels ensuring readability for all cards, schedules, and prize tiers.
 - **🕹️ Movement & Flight Dynamics**:
   - `W`, `A`, `S`, `D` / Arrow keys: Walk and navigate.
@@ -31,8 +22,8 @@ Built with Three.js and native ES modules, running completely in modern browsers
   - `F`: Interact with nearby stations.
   - `M`: Toggle radar minimap.
 - **⚡ Strict Performance Budget**:
-  - Rendered in just **15 draw calls** (budget < 60).
-  - Less than **10,000 triangles** (budget < 200,000).
+  - About **25 draw calls** at common viewpoints (budget < 60).
+  - About **9,000 triangles** (budget < 200,000).
   - 100% baked ambient lighting with zero unneeded real-time shadow overhead.
   - Mobile-ready touch controls and responsive layouts.
 
@@ -62,13 +53,17 @@ Validates site metadata, configuration, assets, and engine diffs.
 ## 📂 Project Structure
 
 ```
-index.html          # Station cards, HUD, and 3D world mounting point
+index.html          # Hero, top bar and station content cards
 homecraft.json      # Metadata: site name, author, tagline, and language
 home.config.js      # Configuration: skin, IST timezone (Asia/Kolkata), Dock items
+site/               # Website layer: top bar, hero, name tags, click-to-open, Prev/Next
 world/
-  layout.js         # Island dimensions, spawn point, and station coordinates
-  build.js          # World generation, boundary colliders, and setup loops
-  structures.js     # 3D architectural models for all hackathon stations & GDG banner
+  README.md         # How the world is split up and how to add a station
+  layout.js         # The map: island, spawn, station positions, paths, lamps, trees
+  stations/         # One file per station's 3D build
+  grounds.js        # Paths, maze plaza, lamps, flowers, GDG signboard
+  kit.js            # Shared materials and station placement helper
+  build.js          # Puts the island together
 assets/             # Textures, skins, and branding assets
 engine/             # Three.js rendering engine and UI systems
 tools/              # Local server, validation, and testing scripts
