@@ -4,7 +4,9 @@
 // splashes, drips and bubbles. Rain follows the weather: a soft wash and the
 // patter of separate drops outdoors, dull under the glass roof, a deep hush
 // under the pool's surface with now and then a drop above.
-// No footsteps: made-up ones read as noise. Off until switched on; remembered.
+// Footsteps are synthesized with the rest of the sound effects, so the site
+// stays self-contained and does not need audio files. Off until switched on;
+// the setting is remembered.
 
 const KEY = 'terryhome-sound';
 
@@ -100,6 +102,13 @@ export function createSound() {
   }
 
   const sounds = {
+    // A short, muted voxel footstep. The low thump gives it a blocky feel
+    // without becoming tiring when it repeats during movement.
+    step(level = 1) {
+      const t = ctx.currentTime, dest = out(0.035 * level, 0.03);
+      chirp(dest, t, 120 + Math.random() * 16, 78, 0.055, 0.55, 'triangle');
+      hiss(dest, t, 'lowpass', 520, 0.6, 0.001, 0.045, 0.42);
+    },
     // A Vertec vane flicked aside: a light plastic tick.
     vane() {
       const t = ctx.currentTime;
