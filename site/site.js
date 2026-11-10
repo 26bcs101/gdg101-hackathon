@@ -188,24 +188,99 @@ function ready(h) {
     }
   }
 
-  // ---------- Walk there, then open ----------
-  // Near: walk over and open the card on arrival. Far: jump, like a link.
+  // ---------- Fly there, then open ----------
+  // Clicking any station button, dock slot, name tag, or 3D building flies
+  // the player across the island to that station, lands on its feet, and opens the card.
   let pending = null;
-  function visit(id) {
+  let flyingTarget = null;
+  const nativeGo = h.go.bind(h);
+
+  function flyToStation(id, instant = false) {
+    if (isPlain()) return;
     hideHero();
-    const s = stationOf(id), p = h.player.pos;
-    if (!s) return;
-    if (Math.hypot(s.at[0] - p.x, s.at[1] - p.z) > 14 || h.player.flying) { h.go(id); return; }
-    pending = id;
-    h.activate(id);
-    if (!h.player.travelling && !panel.open) { pending = null; h.go(id); }
+    doneHint();
+
+    const s = stationOf(id);
+    if (!s || !h.player) {
+      nativeGo(id);
+      return;
+    }
+
+    const p = h.player.pos;
+    const dist = Math.hypot(s.at[0] - p.x, s.at[1] - p.z);
+
+    // If instant requested or player is already standing right at the station (< 2.2m)
+    if (instant || dist < 2.2) {
+      flyingTarget = null;
+      nativeGo(id);
+      return;
+    }
+
+    // Close any open card modal so the flight is completely unobstructed
+    if (panel.open) {
+      try { panel.close(); } catch { panel.removeAttribute('open'); }
+      body.classList.remove('reading');
+    }
+
+    pending = null;
+    flyingTarget = id;
+
+    // Trigger autopilot flight
+    const ok = h.player.flyTo(s.at[0], s.at[1]);
+    if (!ok) {
+      flyingTarget = null;
+      nativeGo(id);
+      return;
+    }
+
+    // Keep camera locked on avatar
+    h.rig.recenter(h.player, true);
   }
+
+  // Intercept h.go so all external/console and navigation calls fly to station
+  h.go = function(id, instant = false) {
+    if (instant) nativeGo(id);
+    else flyToStation(id);
+  };
+
+  function visit(id) {
+    flyToStation(id);
+  }
+
   function arrive() {
+    if (flyingTarget) {
+      const s = stationOf(flyingTarget);
+      const p = h.player.pos;
+      const dist = s ? Math.hypot(s.at[0] - p.x, s.at[1] - p.z) : 999;
+
+      // Keep waiting while player is cruising or descending
+      if (h.player.travelling || h.player.flying || dist > 3.2) {
+        return;
+      }
+
+      // Landed and arrived!
+      const targetId = flyingTarget;
+      flyingTarget = null;
+
+      if (dist < 3.2 && s) {
+        // Face towards the station's look point and align camera
+        h.player.teleport(h.player.pos.x, h.player.pos.z, s);
+        h.rig.recenter(h.player, true);
+        if (s.show) {
+          h.rig.showcase(...(h.stage.camera.aspect < 0.8 && s.showPortrait ? s.showPortrait : s.show));
+        }
+        if (s.page !== false) {
+          h.openPage(targetId);
+        }
+      }
+      return;
+    }
+
     if (!pending) return;
     if (panel.open) { pending = null; return; }
     if (h.player.travelling) return;
     const s = stationOf(pending), p = h.player.pos;
-    if (Math.hypot(s.at[0] - p.x, s.at[1] - p.z) < 1.8) h.openPage(pending);
+    if (Math.hypot(s.at[0] - p.x, s.at[1] - p.z) < 2.0) h.openPage(pending);
     pending = null;
   }
 
@@ -281,7 +356,18 @@ function ready(h) {
     if (url.href !== location.href) history.replaceState(history.state, '', url.hash ? url : url.pathname + url.search);
   }
   new MutationObserver(onCard).observe(panel, { attributes: true, attributeFilter: ['open', 'data-station'] });
-  if (queued || deepLink) { h.go(queued || deepLink); showHint(); }
+  // Dock / Hotbar slot clicks: fly to station instead of instant teleport
+  $('#hotbar')?.addEventListener('click', e => {
+    const slot = e.target.closest('[data-station]');
+    if (!slot) return;
+    const id = slot.dataset.station;
+    if (!id || id === 'portal') return;
+    e.preventDefault();
+    e.stopPropagation();
+    flyToStation(id);
+  }, true);
+
+  if (queued || deepLink) { nativeGo(queued || deepLink); showHint(); }
   onCard();
 
   (function loop() {
