@@ -48,11 +48,9 @@
 .site-cta { display: inline-flex; align-items: center; min-height: 36px; padding: 0 14px; color: #fff; text-decoration: none; font: 700 14px/1 var(--text); text-shadow: 2px 2px 0 rgba(0, 0, 0, .35); }
 .mc-button:disabled { opacity: .7; cursor: progress; }
 
-/* The engine's switches and radar sit below the bar. Web-zip is a gamer's
-   trick; it stays out of the way on this site. */
+/* The engine's switches and radar sit below the bar. */
 #corner { top: calc(max(16px, env(safe-area-inset-top)) + var(--bar-h)); }
 #weatherMenu { top: calc(max(16px, env(safe-area-inset-top)) + var(--bar-h) + 58px); }
-#webButton { display: none !important; }
 body.plain { padding-top: var(--bar-h); }
 body.plain #pages .plain-title { display: none; }
 
