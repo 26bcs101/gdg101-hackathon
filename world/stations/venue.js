@@ -11,8 +11,12 @@ function mergeVenueModel(root) {
 
   root.traverse((child) => {
     if (child.isMesh && child.geometry) {
-      const geom = child.geometry.clone();
+      let geom = child.geometry.clone();
       geom.applyMatrix4(child.matrixWorld);
+      if (geom.index) {
+        geom = geom.toNonIndexed();
+      }
+      geom.computeVertexNormals();
 
       const count = geom.attributes.position.count;
       const colors = new Float32Array(count * 3);
@@ -34,10 +38,8 @@ function mergeVenueModel(root) {
   });
 
   const merged = mergeGeometries(geoms, false);
-  const material = new THREE.MeshStandardMaterial({
+  const material = new THREE.MeshLambertMaterial({
     vertexColors: true,
-    roughness: 0.35,
-    metalness: 0.15,
     side: THREE.DoubleSide,
   });
 
