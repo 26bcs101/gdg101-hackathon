@@ -1,0 +1,127 @@
+name: Vercel Preview Deployment
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  deployments: write
+
+concurrency:
+  group: vercel-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-preview:
+    name: Deploy Vercel Preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check Vercel Credentials
+        id: check-secrets
+        run: |
+          if [ -z "${{ secrets.VERCEL_TOKEN }}" ] || [ -z "${{ secrets.VERCEL_ORG_ID }}" ] || [ -z "${{ secrets.VERCEL_PROJECT_ID }}" ]; then
+            echo "has_secrets=false" >> $GITHUB_OUTPUT
+            echo "Vercel secrets (VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID) are not configured."
+          else
+            echo "has_secrets=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install Vercel CLI
+        if: steps.check-secrets.outputs.has_secrets == 'true'
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel Environment Information
+        if: steps.check-secrets.outputs.has_secrets == 'true'
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Build Project Artifacts
+        if: steps.check-secrets.outputs.has_secrets == 'true'
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Deploy Preview to Vercel
+        id: deploy
+        if: steps.check-secrets.outputs.has_secrets == 'true'
+        run: |
+          DEPLOY_URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$DEPLOY_URL" >> $GITHUB_OUTPUT
+          echo "Deployed successfully to: $DEPLOY_URL"
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Comment on Pull Request
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const hasSecrets = '${{ steps.check-secrets.outputs.has_secrets }}' === 'true';
+            const deployUrl = '${{ steps.deploy.outputs.url }}';
+            const marker = '<!-- vercel-preview-deployment -->';
+
+            let commentBody = '';
+            if (hasSecrets && deployUrl) {
+              const fullUrl = deployUrl.startsWith('http') ? deployUrl : `https://${deployUrl}`;
+              commentBody = `${marker}
+            ### 🚀 Vercel Preview Deployment Ready!
+
+            | Name | Status | Preview Link |
+            | :--- | :--- | :--- |
+            | **Labyrinth 3D Site** | ✅ Deployed | [**${fullUrl}**](${fullUrl}) |
+
+            * **Commit**: \`${context.payload.pull_request.head.sha.substring(0, 7)}\`
+            * **Triggered by**: @${context.actor}
+            * **Branch**: \`${context.payload.pull_request.head.ref}\`
+
+            > *All 3D voxel stations, GLB models, and interactive cards are built and live in this preview.*`;
+            } else {
+              commentBody = `${marker}
+            ### ℹ️ Vercel Preview Deployment Setup Needed
+
+            To enable automatic Vercel preview links for pull requests, add these Repository Secrets in **Settings > Secrets and variables > Actions**:
+            - \`VERCEL_TOKEN\` (Personal Access Token from Vercel Account Settings)
+            - \`VERCEL_ORG_ID\` (Scope / Team ID from Vercel project)
+            - \`VERCEL_PROJECT_ID\` (Project ID from Vercel project settings)`;
+            }
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+            });
+
+            const botComment = comments.find(comment => comment.body.includes(marker));
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: commentBody,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: commentBody,
+              });
+            }
