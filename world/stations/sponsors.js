@@ -149,7 +149,7 @@ export default {
     plane(group, 0, 0.39, 0);
 
     const loader = new GLTFLoader();
-    loader.load('assets/gdg_green_dollar_gdg_topper.glb', (gltf) => {
+    loader.load('assets/models/gdg_green_dollar_gdg_topper.glb', (gltf) => {
       const model = gltf.scene;
       model.scale.setScalar(0.55);
       // Y is already UP in this model

@@ -96,7 +96,7 @@ export default {
     plane(group, 0, 0.35, 0);
 
     const loader = new GLTFLoader();
-    loader.load('assets/gdg_hackathon_team_meeting.glb', (gltf) => {
+    loader.load('assets/models/gdg_hackathon_team_meeting.glb', (gltf) => {
       const model = gltf.scene;
       const optimized = mergeTeamModel(model);
       group.add(optimized);

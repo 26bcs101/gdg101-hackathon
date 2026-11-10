@@ -138,7 +138,7 @@ export default {
     plane(group, 0, 0, 0);
 
     const loader = new GLTFLoader();
-    loader.load('assets/gdg_labyrinth_venue_building.glb', (gltf) => {
+    loader.load('assets/models/gdg_labyrinth_venue_building.glb', (gltf) => {
       const model = gltf.scene;
       model.scale.setScalar(0.28);
       const optimized = mergeVenueModel(model);

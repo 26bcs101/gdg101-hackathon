@@ -139,7 +139,7 @@ export default {
     plane(group, 0, 0.39, 0);
 
     const loader = new GLTFLoader();
-    loader.load('assets/gdg_labyrinth_trophy.glb', (gltf) => {
+    loader.load('assets/models/gdg_labyrinth_trophy.glb', (gltf) => {
       const model = gltf.scene;
       model.scale.setScalar(0.68);
       // In the GLB, Z is UP. Rotate around X by -90 deg so Z becomes +Y (UP)
