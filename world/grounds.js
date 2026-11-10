@@ -10,32 +10,32 @@ import { M } from './kit.js';
 import { FACING } from './frame.js';
 import { PLAN, RING, AVENUE, MAZE, LAMPS, TREES, SIGNBOARD } from './layout.js';
 
-// ---------- Maze inlay ----------
-// A perfect maze (one route between any two cells), carved with a seeded
-// depth-first search so it is the same on every visit. Walls are 1 block.
-function carveMaze({ x0, x1, z0, z1, seed }) {
-  const W = x1 - x0, H = z1 - z0, cw = (W - 1) / 2, ch = (H - 1) / 2;
-  const open = new Uint8Array(W * H), seen = new Uint8Array(cw * ch), r = rng(seed);
-  const cell = (i, j) => { open[(1 + 2 * i) + (1 + 2 * j) * W] = 1; };
-  const stack = [[Math.floor(cw / 2), ch - 1]];
-  seen[stack[0][0] + stack[0][1] * cw] = 1; cell(...stack[0]);
-  while (stack.length) {
-    const [i, j] = stack[stack.length - 1];
-    const next = [[1, 0], [-1, 0], [0, 1], [0, -1]]
-      .map(([di, dj]) => [i + di, j + dj, di, dj])
-      .filter(([a, b]) => a >= 0 && b >= 0 && a < cw && b < ch && !seen[a + b * cw]);
-    if (!next.length) { stack.pop(); continue; }
-    const [a, b, di, dj] = next[Math.floor(r() * next.length)];
-    seen[a + b * cw] = 1; cell(a, b);
-    open[(1 + 2 * i + di) + (1 + 2 * j + dj) * W] = 1;
-    stack.push([a, b]);
-  }
-  // Doors in the middle of the south and north sides.
-  const mid = Math.floor(W / 2);
-  open[mid + (H - 1) * W] = 1; open[mid] = 1;
-  return (x, z) => !!open[(x - x0) + (z - z0) * W];
+// ---------- GDG Lawn Lettering ----------
+// 17 columns (x from -8 to 8), 11 rows (z from -6 to 4).
+// Replaces previous procedural maze with "GDG" stone block lettering on hedge grass.
+// G1 (cols 1..4), space (col 5), D (cols 6..10), space (col 11), G2 (cols 12..15).
+const GDG_PATTERN = [
+  ".................", // z = -6: top green margin
+  ".................", // z = -5: top green margin
+  "..###.####...###.", // z = -4: row 0 (top chamfer: G1=.###, D=####., G2=.###)
+  ".####.#####.####.", // z = -3: row 1 (top bar: G1=####, D=#####, G2=####)
+  ".#....#..##.#....", // z = -2: row 2 (upper body: G1=#..., D=#..##, G2=#...)
+  ".#.##.#..##.#.##.", // z = -1: row 3 (middle spur: G1=#.##, D=#..##, G2=#.##)
+  ".#..#.#..##.#..#.", // z = 0:  row 4 (lower body: G1=#..#, D=#..##, G2=#..#)
+  ".####.#####.####.", // z = 1:  row 5 (bottom bar: G1=####, D=#####, G2=####)
+  "..##..####...##..", // z = 2:  row 6 (bottom chamfer: G1=.##., D=####., G2=.##.)
+  ".................", // z = 3:  bottom green margin
+  ".................", // z = 4:  bottom green margin
+];
+
+function isGDG(x, z) {
+  const col = x - MAZE.x0;
+  const row = z - MAZE.z0;
+  if (row < 0 || row >= GDG_PATTERN.length) return false;
+  const line = GDG_PATTERN[row];
+  if (col < 0 || col >= line.length) return false;
+  return line[col] === '#';
 }
-const mazeOpen = carveMaze(MAZE);
 
 // ---------- Walkways from the ring to each station ----------
 // A 2 m strip from just in front of the station out to the ring or avenue.
@@ -50,7 +50,7 @@ const onWalkway = (x, z) => walkways.some(w => w(x + 0.5, z + 0.5));
 
 // What the top block of the island is at (x, z): see buildIsland's surfaceAt.
 export function surfaceAt(x, z) {
-  if (inRect(MAZE, x, z)) return mazeOpen(x, z) ? 'travertine' : 'hedge';
+  if (inRect(MAZE, x, z)) return isGDG(x, z) ? 'travertine' : 'hedge';
   if (inRect(RING.inner, x, z)) return 'travertine';
   if (inRect(RING.outer, x, z) || inRect(AVENUE, x, z) || onWalkway(x, z)) return 'pavers';
   return 'grass';
