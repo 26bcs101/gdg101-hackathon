@@ -23,8 +23,12 @@ const git = (...args) => execFileSync('git', args, { cwd: root, maxBuffer: 20 * 
 let sequence = 0;
 function write(file, bytes) { mkdirSync(dirname(file), { recursive: true }); writeFileSync(file, bytes); }
 function historical(ref) {
-  return Object.fromEntries(git('ls-tree', '-r', '--name-only', ref, '--', 'engine/').toString().trim().split('\n')
-    .map(path => [path.slice(7), git('show', `${ref}:${path}`)]));
+  try {
+    return Object.fromEntries(git('ls-tree', '-r', '--name-only', ref, '--', 'engine/').toString().trim().split('\n')
+      .map(path => [path.slice(7), git('show', `${ref}:${path}`)]));
+  } catch {
+    return {};
+  }
 }
 const initial = historical('8a8e101');
 const beforeRelease = historical('a077af9');
