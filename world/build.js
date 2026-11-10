@@ -43,14 +43,31 @@ export function build({ grid, layer, materials }) {
   };
 }
 
-export function setup({ player }) {
+export function setup({ player, sound }) {
   const minX = ISLAND.x0 + 0.5, maxX = ISLAND.x1 - 0.5, minZ = ISLAND.z0 + 0.5, maxZ = ISLAND.z1 - 0.5;
+  let stepClock = 0;
+  let lastX = player.pos.x, lastZ = player.pos.z;
   return {
-    update() {
+    update(dt) {
       // A last guard in case flight or a zip slips past the edge.
       const p = player.pos;
       if (p.x < minX) p.x = minX; else if (p.x > maxX) p.x = maxX;
       if (p.z < minZ) p.z = minZ; else if (p.z > maxZ) p.z = maxZ;
+
+      // Trigger footsteps by distance rather than by frame count. This keeps
+      // the rhythm stable when the frame rate or movement speed changes.
+      const moved = Math.hypot(p.x - lastX, p.z - lastZ);
+      lastX = p.x;
+      lastZ = p.z;
+      if (player.mode === 'ground' && moved > 0.001) {
+        stepClock -= dt;
+        if (stepClock <= 0) {
+          sound?.play('step', player.floorY > 0.1 ? 0.75 : 1);
+          stepClock = 0.34;
+        }
+      } else if (player.mode !== 'ground') {
+        stepClock = 0;
+      }
     },
   };
 }
