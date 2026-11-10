@@ -48,7 +48,25 @@ export function initNav(h) {
 
   // ---------- Flight Autopilot Navigation ----------
   let flyingTarget = null;
+  let flightStartTime = 0;
   const nativeGo = h.go.bind(h);
+
+  function landAndOpen(targetId) {
+    flyingTarget = null;
+    const s = stationOf(targetId);
+    if (!s || !h.player) return;
+
+    // Firmly touch down player on the ground facing the station
+    h.player.teleport(s.at[0], s.at[1], s);
+    h.rig.recenter(h.player, true);
+
+    if (s.show) {
+      h.rig.showcase(...(h.stage.camera.aspect < 0.8 && s.showPortrait ? s.showPortrait : s.show));
+    }
+    if (s.page !== false) {
+      h.openPage(targetId);
+    }
+  }
 
   function flyToStation(id, instant = false) {
     if (isPlain()) return;
@@ -78,6 +96,7 @@ export function initNav(h) {
     }
 
     flyingTarget = id;
+    flightStartTime = performance.now();
 
     // Trigger flight autopilot
     const ok = h.player.flyTo(s.at[0], s.at[1]);
@@ -100,29 +119,44 @@ export function initNav(h) {
     if (!flyingTarget) return;
 
     const s = stationOf(flyingTarget);
-    const p = h.player.pos;
-    const dist = s ? Math.hypot(s.at[0] - p.x, s.at[1] - p.z) : 999;
-
-    // Still flying or descending
-    if (h.player.travelling || h.player.flying || dist > 3.2) {
+    if (!s || !h.player) {
+      flyingTarget = null;
       return;
     }
 
-    const targetId = flyingTarget;
-    flyingTarget = null;
+    const p = h.player.pos;
+    const dist = Math.hypot(s.at[0] - p.x, s.at[1] - p.z);
+    const elapsed = performance.now() - flightStartTime;
 
-    if (dist < 3.2 && s) {
-      // Landed! Face the station's building and align camera
-      h.player.teleport(h.player.pos.x, h.player.pos.z, s);
-      h.rig.recenter(h.player, true);
-      if (s.show) {
-        h.rig.showcase(...(h.stage.camera.aspect < 0.8 && s.showPortrait ? s.showPortrait : s.show));
-      }
-      if (s.page !== false) {
-        h.openPage(targetId);
-      }
+    // Arrival conditions:
+    // 1. Reached vicinity of station (dist <= 2.8m)
+    // 2. Engine autopilot finished or timed out (!h.player.piloting after 400ms)
+    // 3. Safety timeout exceeded (2.4s) to guarantee player never stays suspended mid-air
+    const arrivedNear = dist <= 2.8;
+    const autopilotDone = elapsed > 400 && !h.player.piloting;
+    const timedOut = elapsed > 2400;
+
+    if (arrivedNear || autopilotDone || timedOut) {
+      landAndOpen(flyingTarget);
     }
   }
+
+  function cancelFlight() {
+    if (!flyingTarget) return;
+    flyingTarget = null;
+    if (h.player?.flying) {
+      // Safely settle down if user manually takes over while flying
+      const p = h.player.pos;
+      h.player.teleport(p.x, p.z);
+    }
+  }
+
+  // Manual keypress cancels autopilot flight immediately
+  window.addEventListener('keydown', e => {
+    if (flyingTarget && /^(Key[WASD]|Arrow|Space|Escape)/.test(e.code) && !e.target.closest?.('input, textarea')) {
+      cancelFlight();
+    }
+  });
 
   // ---------- Dock / Hotbar Slot Capturing ----------
   $('#hotbar')?.addEventListener('click', e => {
@@ -187,6 +221,6 @@ export function initNav(h) {
     flyToStation,
     nativeGo,
     arrive,
-    cancelFlight() { flyingTarget = null; },
+    cancelFlight,
   };
 }
