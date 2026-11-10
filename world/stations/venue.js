@@ -38,9 +38,9 @@ function getElementColor(name, origColor, origMat) {
     return [0.95, 0.76, 0.22, 1.15]; // Polished brass/gold
   }
 
-  // Roof Structure - Warm terracotta / cedar slate (never muddy dark brown)
+  // Roof Structure - Warm vibrant terracotta cedar tile
   if (n.includes('roof_main_slab') || n.includes('roof_beam')) {
-    return [0.65, 0.38, 0.24, 1.0]; // Warm cedar terracotta
+    return [0.76, 0.46, 0.30, 1.15]; // Warm cedar terracotta
   }
 
   // Facade Pillars - Premium fluted cream limestone
@@ -117,16 +117,14 @@ function mergeVenueModel(root) {
   });
 
   const merged = mergeGeometries(geoms, false);
-  const material = new THREE.MeshStandardMaterial({
+  const material = new THREE.MeshLambertMaterial({
     vertexColors: true,
-    roughness: 0.45,
-    metalness: 0.1,
-    side: THREE.FrontSide,
+    side: THREE.DoubleSide,
   });
 
   const mesh = new THREE.Mesh(merged, material);
   mesh.castShadow = true;
-  mesh.receiveShadow = false; // Prevents shadow acne and double-sided self-shadowing into pure black
+  mesh.receiveShadow = true;
   return mesh;
 }
 
