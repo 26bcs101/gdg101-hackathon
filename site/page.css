@@ -878,7 +878,7 @@ body.plain .signup {
 body.plain .signup > :is(textarea, .mailbox-foot) {
   grid-column: 1 / -1;
 }
-body.plain :is(.signup, .mailbox) :is(input, textarea) {
+body.plain :is(.signup, .mailbox) :is(input, select, textarea) {
   width: 100%;
   padding: 12px 14px;
   background: #dedbd4;
@@ -890,7 +890,7 @@ body.plain :is(.signup, .mailbox) :is(input, textarea) {
   box-sizing: border-box;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
-body.plain :is(.signup, .mailbox) :is(input, textarea):focus {
+body.plain :is(.signup, .mailbox) :is(input, select, textarea):focus {
   outline: none;
   border-color: #b58d24;
   box-shadow: inset 2px 2px 0 #8c6913, 0 0 0 2px #d4af37;
@@ -901,6 +901,19 @@ body.plain .mailbox-foot {
   justify-content: flex-end;
   margin-top: 6px;
 }
+/* The registration form uses the mailbox field treatment without submitting through the mailbox. */
+.signup {
+  position: relative; display: grid; gap: 12px; padding: 14px;
+  border: 8px solid transparent; border-image: var(--mc-frame) 4 fill / 8px;
+}
+.signup :is(input, select, textarea) {
+  width: 100%; padding: 10px 12px; border: 0; border-radius: 0;
+  font: 400 16px/1.5 var(--text); color: var(--ink); background: var(--field);
+  box-shadow: 0 0 0 2px var(--field-edge);
+}
+.signup textarea { min-height: 120px; resize: none; }
+.signup :is(input, select, textarea)::placeholder { color: var(--field-hint); }
+.signup :is(input, select, textarea):focus { outline: none; box-shadow: 0 0 0 2px var(--ink); }
 
 /* Footer */
 .pv-foot { display: none; }
