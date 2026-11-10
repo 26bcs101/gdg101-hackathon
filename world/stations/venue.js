@@ -23,14 +23,36 @@ function mergeVenueModel(root) {
       const mat = child.material;
       const c = mat?.color || new THREE.Color(0xffffff);
 
-      // Give glowing letters and gold accents a subtle boost in vertex color
-      const isEmissive = mat?.emissive && (mat.emissive.r > 0.05 || mat.emissive.g > 0.05 || mat.emissive.b > 0.05);
+      // Enhance GDG logo elements with official vibrant Google palette
+      let r = c.r;
+      let g = c.g;
+      let b = c.b;
+      const name = child.name.toLowerCase();
+      if (name.includes('gdg_') || name.includes('banner_logo') || name.includes('reception_gdg')) {
+        if (name.includes('red') || name.endsWith('1') || name.endsWith('5')) {
+          // Google Red: #ea4335
+          r = 0.92; g = 0.26; b = 0.21;
+        } else if (name.includes('blue') || name.endsWith('0') || name.endsWith('4')) {
+          // Google Blue: #4285f4
+          r = 0.26; g = 0.52; b = 0.96;
+        } else if (name.includes('green') || name.endsWith('2') || name.endsWith('6')) {
+          // Google Green: #34a853
+          r = 0.20; g = 0.66; b = 0.33;
+        } else if (name.includes('yellow') || name.endsWith('3') || name.endsWith('7')) {
+          // Google Yellow: #fbbc05
+          r = 0.98; g = 0.74; b = 0.02;
+        }
+      }
+
+      // Subtle emissive boost for letters and logos
+      const isEmissive = (mat?.emissive && (mat.emissive.r > 0.05 || mat.emissive.g > 0.05 || mat.emissive.b > 0.05)) ||
+        name.includes('gdg_') || name.includes('banner_logo') || name.includes('letter');
       const boost = isEmissive ? 1.25 : 1.0;
 
       for (let i = 0; i < count; i++) {
-        colors[i * 3] = Math.min(1, c.r * boost);
-        colors[i * 3 + 1] = Math.min(1, c.g * boost);
-        colors[i * 3 + 2] = Math.min(1, c.b * boost);
+        colors[i * 3] = Math.min(1, r * boost);
+        colors[i * 3 + 1] = Math.min(1, g * boost);
+        colors[i * 3 + 2] = Math.min(1, b * boost);
       }
       geom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
       geoms.push(geom);
