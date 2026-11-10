@@ -248,6 +248,12 @@ function ready(h) {
     for (const t of tags) t.el.classList.toggle('hot', t.id === id);
   });
 
+  // The engine closes a card on a click that misses its cards and controls,
+  // which here includes plain card text. Clicks inside the card body stay in it.
+  panel.addEventListener('click', e => {
+    if (e.target.closest('#panel .body, #panel .tour') && !e.target.closest('a, button, form, input, textarea, select, label, [data-open]')) e.stopPropagation();
+  }, true);
+
   // ---------- Prev / Next in the card, and the address ----------
   const tour = document.createElement('nav');
   tour.className = 'tour'; tour.setAttribute('aria-label', 'Stations');
