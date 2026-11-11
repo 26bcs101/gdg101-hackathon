@@ -1,7 +1,7 @@
 // Venue: 3D Voxel GDG Labyrinth Venue Pavilion Building.
 // Local frame: (0, 0) is the centre, +z is the front (faces the path).
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { loadModel } from '../models.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 // Shared uniform controlling nighttime self-illumination (0.0 = day, 1.0 = night).
@@ -207,8 +207,7 @@ export default {
     const group = new THREE.Group();
     plane(group, 0, 0, 0);
 
-    const loader = new GLTFLoader();
-    loader.load('assets/models/gdg_labyrinth_venue_building.glb', (gltf) => {
+    loadModel('assets/models/gdg_labyrinth_venue_building.glb', (gltf) => {
       const model = gltf.scene;
       model.scale.setScalar(0.28);
       const optimized = mergeVenueModel(model);

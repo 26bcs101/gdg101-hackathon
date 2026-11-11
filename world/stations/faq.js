@@ -1,7 +1,7 @@
 // FAQ: 3D Voxel Knowledge Pavilion & Enchanted Library.
 // Local frame: (0, 0) is the centre, +z is the front (faces the path).
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { loadModel } from '../models.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 // Enhanced PBR merger grouping by architectural feature to deliver
@@ -227,8 +227,7 @@ export default {
     const group = new THREE.Group();
     plane(group, 0, 0.35, 0);
 
-    const loader = new GLTFLoader();
-    loader.load('assets/models/gdg_faq.glb', (gltf) => {
+    loadModel('assets/models/gdg_faq.glb', (gltf) => {
       const model = gltf.scene;
       model.scale.setScalar(0.92);
       const optimized = mergeFAQModel(model);
