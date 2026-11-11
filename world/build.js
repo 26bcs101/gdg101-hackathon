@@ -6,7 +6,7 @@ import { buildIsland } from '@engine/world/terrain.js';
 import { createDog } from '@engine/world/avatar.js';
 import { buildSakuraForest, createSakuraPetals } from './sakura.js';
 import { createFootstepParticles } from './footsteps.js';
-import { ISLAND, PLAN, TREES, SPAWN } from './layout.js';
+import { ISLAND, PLAN, TREES, SPAWN, MAP_MARGIN } from './layout.js';
 import { placeStation } from './kit.js';
 import { BUILDS } from './stations/index.js';
 import { surfaceAt, buildDecor } from './grounds.js';
@@ -15,6 +15,7 @@ import { buildCampus } from './campus.js';
 import { defineStage, buildMarkers, markerPulse } from './markers.js';
 import { venueUniforms } from './stations/venue.js';
 import { startModels } from './models.js';
+import { makePlan } from './plan.js';
 
 let activePetals = null;
 let footstepFx = null;
@@ -87,6 +88,10 @@ export function build({ grid, layer, materials, scene }) {
     bakes: out.bakes,
     forest,
     sites: [edge],
+    // The map's campus, trees, fence and mountains, read from the same boxes.
+    named: { drawMap: makePlan(out.B, materials, {
+      x0: ISLAND.x0 - MAP_MARGIN, x1: ISLAND.x1 + MAP_MARGIN, z0: ISLAND.z0 - MAP_MARGIN, z1: ISLAND.z1 + MAP_MARGIN,
+    }, ISLAND) },
   };
 }
 
