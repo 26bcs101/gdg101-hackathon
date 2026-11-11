@@ -965,7 +965,7 @@ body.pv-motion .faq-box details[open] summary::after { animation: pv-pop .3s eas
   body.plain #hero {
     align-items: flex-start;
     min-height: 0;
-    padding: 12px 16px 36px;
+    padding: 28px 18px 48px;
   }
   body.plain #hero::before {
     inset: 0;
