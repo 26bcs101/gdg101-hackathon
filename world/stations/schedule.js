@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { loadModel } from '../models.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { bakeStation } from '../bake.js';
 
 // Enhanced PBR merger grouping by architectural feature to deliver
 // authentic Minecraft voxel aesthetics with a distinct, beautiful clock dial,
@@ -296,7 +297,7 @@ export default {
     loadModel('assets/models/gdg_schedule.glb', (gltf) => {
       const model = gltf.scene;
       model.scale.setScalar(0.48);
-      const optimized = mergeScheduleModel(model);
+      const optimized = bakeStation(mergeScheduleModel(model));
       group.add(optimized);
     });
 

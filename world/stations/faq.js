@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { loadModel } from '../models.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { bakeStation } from '../bake.js';
 
 // Enhanced PBR merger grouping by architectural feature to deliver
 // authentic Minecraft voxel aesthetics with an enchanted knowledge pavilion,
@@ -230,7 +231,7 @@ export default {
     loadModel('assets/models/gdg_faq.glb', (gltf) => {
       const model = gltf.scene;
       model.scale.setScalar(0.92);
-      const optimized = mergeFAQModel(model);
+      const optimized = bakeStation(mergeFAQModel(model));
       group.add(optimized);
     });
 
