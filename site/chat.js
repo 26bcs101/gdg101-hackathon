@@ -25,6 +25,45 @@ const MAX_HISTORY = 8;
 
 const $ = s => document.querySelector(s);
 
+let wolfAudio = null;
+
+function isSoundMuted() {
+  if (window.__home?.sound) {
+    return !window.__home.sound.on;
+  }
+  try {
+    return localStorage.getItem('terryhome-sound') === 'off';
+  } catch {
+    return false;
+  }
+}
+
+export function playWolfBark() {
+  if (isSoundMuted()) return;
+  try {
+    if (!wolfAudio) {
+      wolfAudio = new Audio('assets/sfx/wolf-bark.mp3');
+      wolfAudio.volume = 0.75;
+    }
+    wolfAudio.currentTime = 0;
+    wolfAudio.play().catch(() => {});
+  } catch (err) {
+    console.warn('Wolf bark sound error:', err);
+  }
+}
+
+// Ensure wolf sound halts immediately if the visitor mutes sound
+document.addEventListener('click', e => {
+  if (e.target.closest('#soundButton')) {
+    setTimeout(() => {
+      if (isSoundMuted() && wolfAudio && !wolfAudio.paused) {
+        wolfAudio.pause();
+        wolfAudio.currentTime = 0;
+      }
+    }, 20);
+  }
+});
+
 export function initChat() {
   const root = $('#agentChat');
   const panel = $('#agentChatPanel');
@@ -81,9 +120,16 @@ export function initChat() {
     }, 2500);
   }
 
-  toggle.addEventListener('click', () => (isOpen ? close() : open()));
+  toggle.addEventListener('click', () => {
+    playWolfBark();
+    (isOpen ? close() : open());
+  });
   closeBtn.addEventListener('click', close);
-  document.addEventListener('open-labyrinth-chat', open);
+  document.addEventListener('open-labyrinth-chat', () => {
+    playWolfBark();
+    open();
+  });
+  panel.querySelector('.agent-chat-title-row')?.addEventListener('click', playWolfBark);
   document.addEventListener('keydown', e => { if (isOpen && e.key === 'Escape') close(); });
 
   function bubble(role, text) {

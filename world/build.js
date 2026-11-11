@@ -5,6 +5,7 @@ import { BoxBatch } from '@engine/world/blocks.js';
 import { buildIsland } from '@engine/world/terrain.js';
 import { createDog } from '@engine/world/avatar.js';
 import { buildSakuraForest, createSakuraPetals } from './sakura.js';
+import { createFootstepParticles } from './footsteps.js';
 import { ISLAND, PLAN, TREES, SPAWN } from './layout.js';
 import { placeStation } from './kit.js';
 import { BUILDS } from './stations/index.js';
@@ -15,6 +16,7 @@ import { defineStage, buildMarkers, markerPulse } from './markers.js';
 import { venueUniforms } from './stations/venue.js';
 
 let activePetals = null;
+let footstepFx = null;
 
 // Labyrinth (the mascot dog): built with the engine's own dog rig
 // (@engine/world/avatar.js) but driven by our own follow/click logic instead of
@@ -54,6 +56,7 @@ export function build({ grid, layer, materials, scene }) {
   const forest = buildSakuraForest(grid, layer, TREES, out.B);
   out.forest = forest;
   activePetals = createSakuraPetals(scene, forest.spawners);
+  footstepFx = createFootstepParticles(scene, grid);
   for (const station of PLAN) {
     const def = BUILDS[station.id];
     if (def) placeStation(out, station, def);
@@ -87,6 +90,7 @@ export function build({ grid, layer, materials, scene }) {
 }
 
 export function setup({ stage, player, sound, world }) {
+  if (footstepFx) footstepFx.attachPlayer(player);
   const pulse = markerPulse(world);
   const minX = ISLAND.x0 + 0.5, maxX = ISLAND.x1 - 0.5, minZ = ISLAND.z0 + 0.5, maxZ = ISLAND.z1 - 0.5;
   let stepClock = 0;
@@ -149,6 +153,7 @@ export function setup({ stage, player, sound, world }) {
     update(dt) {
       updateDog(dt);
       if (activePetals) activePetals.update(dt);
+      if (footstepFx) footstepFx.update(dt);
       pulse(dt);
       if (venueUniforms) {
         venueUniforms.uNight.value = stage ? stage.night : (world?.isNight?.() ? 1.0 : 0.0);
