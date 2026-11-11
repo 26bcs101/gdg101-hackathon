@@ -14,6 +14,7 @@ import { buildMountains } from './mountains.js';
 import { buildCampus } from './campus.js';
 import { defineStage, buildMarkers, markerPulse } from './markers.js';
 import { venueUniforms } from './stations/venue.js';
+import { startModels } from './models.js';
 import { makePlan } from './plan.js';
 
 let activePetals = null;
@@ -99,6 +100,8 @@ export function setup({ stage, player, sound, world }) {
   const pulse = markerPulse(world);
   const minX = ISLAND.x0 + 0.5, maxX = ISLAND.x1 - 0.5, minZ = ISLAND.z0 + 0.5, maxZ = ISLAND.z1 - 0.5;
   let stepClock = 0;
+  // Station models start loading a moment after the first frame (world/models.js).
+  let modelsIn = 0.25;
   let lastX = player.pos.x, lastZ = player.pos.z;
 
   // Labyrinth follows a few metres behind wherever the player last walked,
@@ -156,6 +159,7 @@ export function setup({ stage, player, sound, world }) {
 
   return {
     update(dt) {
+      if (modelsIn > 0 && (modelsIn -= dt) <= 0) startModels(stage);
       updateDog(dt);
       if (activePetals) activePetals.update(dt);
       if (footstepFx) footstepFx.update(dt);
