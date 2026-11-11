@@ -86,11 +86,31 @@ export function build({ grid, layer, materials, scene }) {
   };
 }
 
-export function setup({ stage, player, sound, world }) {
+export function setup({ stage, player, sound, world, avatar }) {
   const pulse = markerPulse(world);
   const minX = ISLAND.x0 + 0.5, maxX = ISLAND.x1 - 0.5, minZ = ISLAND.z0 + 0.5, maxZ = ISLAND.z1 - 0.5;
   let stepClock = 0;
   let lastX = player.pos.x, lastZ = player.pos.z;
+  // A small voxel sword attached to the player's right hand.
+  const bladeMat = new THREE.MeshLambertMaterial({ color: 0xc9d8e8 });
+  const guardMat = new THREE.MeshLambertMaterial({ color: 0xf1c40f });
+  const gripMat = new THREE.MeshLambertMaterial({ color: 0x68452d });
+  const sword = new THREE.Group();
+  const piece = (w, h, d, y, material) => {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
+    mesh.position.y = y;
+    sword.add(mesh);
+  };
+  piece(0.09, 0.39, 0.09, -0.27, bladeMat);
+  piece(0.27, 0.06, 0.12, -0.49, guardMat);
+  piece(0.08, 0.19, 0.08, -0.61, gripMat);
+  sword.position.set(0, -0.62, 0.025);
+  sword.rotation.x = -0.2;
+  avatar.armR.add(sword);
+  let swingTime = 0;
+  const canvas = stage.renderer.domElement;
+  const swing = () => { swingTime = 0.38; sound?.play('click'); };
+  canvas.addEventListener('click', swing);
 
   // Labyrinth follows a few metres behind wherever the player last walked,
   // catching up faster the further behind it falls, and teleports to their
@@ -128,7 +148,6 @@ export function setup({ stage, player, sound, world }) {
 
   // Clicking or tapping Labyrinth opens the chat (site/chat.js listens for this).
   const ray = new THREE.Raycaster();
-  const canvas = stage.renderer.domElement;
   let downAt = null;
   function onPointerDown(e) { downAt = { x: e.clientX, y: e.clientY, t: performance.now() }; }
   function onPointerUp(e) {
@@ -148,6 +167,12 @@ export function setup({ stage, player, sound, world }) {
   return {
     update(dt) {
       updateDog(dt);
+      // Apply the attack after the avatar's regular pose update.
+      if (swingTime > 0) {
+        swingTime = Math.max(0, swingTime - dt);
+        const progress = 1 - swingTime / 0.38;
+        avatar.armR.rotation.x -= Math.sin(progress * Math.PI) * 1.75;
+      }
       if (activePetals) activePetals.update(dt);
       pulse(dt);
       if (venueUniforms) {
